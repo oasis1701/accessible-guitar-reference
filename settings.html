@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Settings — Accessible Guitar Reference</title>
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body data-category="settings">
+<a class="skip-link" href="#main">Skip to main content</a>
+<header>
+  <p class="site-title">Accessible Guitar Reference</p>
+  <nav aria-label="Site">
+    <ul>
+      <li><a href="index.html">Home</a></li>
+      <li><a href="conventions.html">How to read this guide</a></li>
+      <li><a href="open-chords.html">Open chords</a></li>
+      <li><a href="power-chords.html">Power chords</a></li>
+      <li><a href="triads.html">Triads</a></li>
+      <li><a href="settings.html" aria-current="page">Settings</a></li>
+    </ul>
+  </nav>
+</header>
+<main id="main">
+  <h1>Settings</h1>
+  <p>These settings change how every description on this site is written. Your choice is saved on this device, in this browser, and applies immediately. The examples further on this page update as you choose, so you can compare before you commit.</p>
+  <noscript><p>Settings need JavaScript to work. Without it, the site still reads fine using the default format.</p></noscript>
+  <p role="status" id="settings-status"></p>
+  <form id="settings-form">
+    <fieldset>
+      <legend>Description format</legend>
+      <p><label><input type="radio" name="format" value="per-string" checked> Per string, from thickest to thinnest. One line for each string, starting at the 6th. This is the default.</label></p>
+      <p><label><input type="radio" name="format" value="by-finger"> By finger. Where each finger goes first, then the open strings, then the muted strings.</label></p>
+      <p><label><input type="radio" name="format" value="prose"> Compact prose. One short paragraph instead of a list.</label></p>
+    </fieldset>
+    <fieldset>
+      <legend>How strings are named</legend>
+      <p><label><input type="radio" name="stringNaming" value="both" checked> Both number and note name, for example: 5th string (A). This is the default.</label></p>
+      <p><label><input type="radio" name="stringNaming" value="number"> By number only, for example: 5th string.</label></p>
+      <p><label><input type="radio" name="stringNaming" value="name"> By note name only, for example: A string.</label></p>
+    </fieldset>
+  </form>
+  <h2>Example open chord with your settings: C major</h2>
+  <div id="example-chord"></div>
+  <h2>Example movable shape with your settings: power chord, root on the 6th string</h2>
+  <div id="example-shape"></div>
+</main>
+<footer>
+  <p>Accessible Guitar Reference — text-first guitar guides for blind and visually impaired players.</p>
+</footer>
+<!-- Classic scripts on purpose (the site works when opened straight from disk).
+     Order matters: data, then settings, then renderer, then page glue. -->
+<script src="data/notes.js"></script>
+<script src="data/open-chords.js"></script>
+<script src="data/power-chords.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/renderer.js"></script>
+<script src="js/page.js"></script>
+</body>
+</html>
