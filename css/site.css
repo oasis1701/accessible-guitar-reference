@@ -166,6 +166,17 @@ input[type="radio"] {
   margin-right: 0.5rem;
 }
 
+select {
+  font: inherit;
+  padding: 0.3rem 0.5rem;
+  border-radius: 0.35rem;
+}
+
+#finder-form label {
+  font-weight: bold;
+  margin-right: 0.5rem;
+}
+
 footer {
   margin-top: 3rem;
   border-top: 1px solid var(--border);

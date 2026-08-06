@@ -2,7 +2,8 @@
 // on two string groups. Same movable-shape schema as power-chords.js:
 // one anchor entry (the root, offset 0); other frets are offsets from it.
 // stringSet groups the shapes on the page: "123" = strings 1 to 3,
-// "234" = strings 2 to 4.
+// "234" = strings 2 to 4. fretRange spans a full 12-fret window so every
+// root note has exactly one playable position per shape.
 globalThis.AGR = globalThis.AGR || {};
 
 (function () {
@@ -19,6 +20,7 @@ globalThis.AGR = globalThis.AGR || {};
       kind: "movable",
       inversion: "root",
       stringSet: "123",
+      variantLabel: "strings 1 to 3",
       strings: [
         { string: 6, action: "mute" },
         { string: 5, action: "mute" },
@@ -27,7 +29,7 @@ globalThis.AGR = globalThis.AGR || {};
         { string: 2, action: "fret", offset: 0, finger: "ring", role: "third" },
         { string: 1, action: "fret", offset: -2, finger: "index", role: "fifth" }
       ],
-      fretRange: [3, 12],
+      fretRange: [3, 14],
       examples: [
         { root: "C", anchorFret: 5 },
         { root: "D", anchorFret: 7 }
@@ -42,6 +44,7 @@ globalThis.AGR = globalThis.AGR || {};
       kind: "movable",
       inversion: "first",
       stringSet: "123",
+      variantLabel: "strings 1 to 3",
       strings: [
         { string: 6, action: "mute" },
         { string: 5, action: "mute" },
@@ -65,6 +68,7 @@ globalThis.AGR = globalThis.AGR || {};
       kind: "movable",
       inversion: "second",
       stringSet: "123",
+      variantLabel: "strings 1 to 3",
       strings: [
         { string: 6, action: "mute" },
         { string: 5, action: "mute" },
@@ -73,7 +77,7 @@ globalThis.AGR = globalThis.AGR || {};
         { string: 2, action: "fret", offset: 0, finger: "ring", role: "root", anchor: true },
         { string: 1, action: "fret", offset: -1, finger: "middle", role: "third" }
       ],
-      fretRange: [2, 12],
+      fretRange: [2, 13],
       examples: [
         { root: "D", anchorFret: 3 },
         { root: "G", anchorFret: 8 }
@@ -88,6 +92,7 @@ globalThis.AGR = globalThis.AGR || {};
       kind: "movable",
       inversion: "root",
       stringSet: "123",
+      variantLabel: "strings 1 to 3",
       strings: [
         { string: 6, action: "mute" },
         { string: 5, action: "mute" },
@@ -96,7 +101,7 @@ globalThis.AGR = globalThis.AGR || {};
         { string: 2, action: "fret", offset: -1, finger: "middle", role: "third" },
         { string: 1, action: "fret", offset: -2, finger: "index", role: "fifth" }
       ],
-      fretRange: [3, 12],
+      fretRange: [3, 14],
       examples: [
         { root: "D", anchorFret: 7 },
         { root: "E", anchorFret: 9 }
@@ -111,6 +116,7 @@ globalThis.AGR = globalThis.AGR || {};
       kind: "movable",
       inversion: "first",
       stringSet: "123",
+      variantLabel: "strings 1 to 3",
       strings: [
         { string: 6, action: "mute" },
         { string: 5, action: "mute" },
@@ -134,6 +140,7 @@ globalThis.AGR = globalThis.AGR || {};
       kind: "movable",
       inversion: "second",
       stringSet: "123",
+      variantLabel: "strings 1 to 3",
       strings: [
         { string: 6, action: "mute" },
         { string: 5, action: "mute" },
@@ -142,7 +149,7 @@ globalThis.AGR = globalThis.AGR || {};
         { string: 2, action: "fret", offset: 0, finger: "ring", role: "root", anchor: true },
         { string: 1, action: "fret", offset: -2, finger: "index", role: "third" }
       ],
-      fretRange: [3, 12],
+      fretRange: [3, 14],
       examples: [
         { root: "D", anchorFret: 3 },
         { root: "A", anchorFret: 10 }
@@ -159,6 +166,7 @@ globalThis.AGR = globalThis.AGR || {};
       kind: "movable",
       inversion: "root",
       stringSet: "234",
+      variantLabel: "strings 2 to 4",
       strings: [
         { string: 6, action: "mute" },
         { string: 5, action: "mute" },
@@ -167,7 +175,7 @@ globalThis.AGR = globalThis.AGR || {};
         { string: 2, action: "fret", offset: -2, finger: "index", role: "fifth" },
         { string: 1, action: "mute" }
       ],
-      fretRange: [3, 12],
+      fretRange: [3, 14],
       examples: [
         { root: "G", anchorFret: 5 },
         { root: "C", anchorFret: 10 }
@@ -182,16 +190,16 @@ globalThis.AGR = globalThis.AGR || {};
       kind: "movable",
       inversion: "first",
       stringSet: "234",
+      variantLabel: "strings 2 to 4",
       strings: [
         { string: 6, action: "mute" },
         { string: 5, action: "mute" },
         { string: 4, action: "fret", offset: 1, finger: "ring", role: "third" },
         { string: 3, action: "fret", offset: -1, finger: "index", role: "fifth" },
-        { string: 2, action: "fret", offset: 0, finger: "middle", role: "root", anchor: true }
-      ,
+        { string: 2, action: "fret", offset: 0, finger: "middle", role: "root", anchor: true },
         { string: 1, action: "mute" }
       ],
-      fretRange: [2, 12],
+      fretRange: [2, 13],
       examples: [
         { root: "D", anchorFret: 3 },
         { root: "G", anchorFret: 8 }
@@ -206,6 +214,7 @@ globalThis.AGR = globalThis.AGR || {};
       kind: "movable",
       inversion: "second",
       stringSet: "234",
+      variantLabel: "strings 2 to 4",
       strings: [
         { string: 6, action: "mute" },
         { string: 5, action: "mute" },
@@ -229,6 +238,7 @@ globalThis.AGR = globalThis.AGR || {};
       kind: "movable",
       inversion: "root",
       stringSet: "234",
+      variantLabel: "strings 2 to 4",
       strings: [
         { string: 6, action: "mute" },
         { string: 5, action: "mute" },
@@ -237,7 +247,7 @@ globalThis.AGR = globalThis.AGR || {};
         { string: 2, action: "fret", offset: -2, finger: "middle", role: "fifth" },
         { string: 1, action: "mute" }
       ],
-      fretRange: [3, 12],
+      fretRange: [3, 14],
       examples: [
         { root: "G", anchorFret: 5 },
         { root: "A", anchorFret: 7 }
@@ -252,6 +262,7 @@ globalThis.AGR = globalThis.AGR || {};
       kind: "movable",
       inversion: "first",
       stringSet: "234",
+      variantLabel: "strings 2 to 4",
       strings: [
         { string: 6, action: "mute" },
         { string: 5, action: "mute" },
@@ -260,7 +271,7 @@ globalThis.AGR = globalThis.AGR || {};
         { string: 2, action: "fret", offset: 0, finger: "ring", role: "root", anchor: true },
         { string: 1, action: "mute" }
       ],
-      fretRange: [2, 12],
+      fretRange: [2, 13],
       examples: [
         { root: "G", anchorFret: 8 },
         { root: "D", anchorFret: 3 }
@@ -275,6 +286,7 @@ globalThis.AGR = globalThis.AGR || {};
       kind: "movable",
       inversion: "second",
       stringSet: "234",
+      variantLabel: "strings 2 to 4",
       strings: [
         { string: 6, action: "mute" },
         { string: 5, action: "mute" },
@@ -283,7 +295,7 @@ globalThis.AGR = globalThis.AGR || {};
         { string: 2, action: "fret", offset: -1, finger: "index", role: "third" },
         { string: 1, action: "mute" }
       ],
-      fretRange: [2, 12],
+      fretRange: [2, 13],
       examples: [
         { root: "A", anchorFret: 2 },
         { root: "D", anchorFret: 7 }

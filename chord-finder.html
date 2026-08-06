@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chord finder — Accessible Guitar Reference</title>
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body data-category="chord-finder">
+<a class="skip-link" href="#main">Skip to main content</a>
+<header>
+  <p class="site-title">Accessible Guitar Reference</p>
+  <nav aria-label="Site">
+    <ul>
+      <li><a href="index.html">Home</a></li>
+      <li><a href="conventions.html">How to read this guide</a></li>
+      <li><a href="open-chords.html">Open chords</a></li>
+      <li><a href="power-chords.html">Power chords</a></li>
+      <li><a href="barre-chords.html">Barre chords</a></li>
+      <li><a href="triads.html">Triads</a></li>
+      <li><a href="chord-finder.html" aria-current="page">Chord finder</a></li>
+      <li><a href="settings.html">Settings</a></li>
+    </ul>
+  </nav>
+</header>
+<main id="main">
+  <h1>Chord finder</h1>
+  <p>Pick a root note and a chord type, and this page gathers every way this site knows to play that chord, ordered along the neck: the open version when there is one, the barre shapes, the triads, and the power chords, each group under its own level 2 heading and each voicing under a level 3 heading. Useful when someone in a video says "now the G sharp chord" and you want your options immediately.</p>
+  <p>The web address updates as you choose, so you can bookmark or share a specific chord.</p>
+  <noscript><p>The chord finder needs JavaScript to compute positions. The rest of the site works without it.</p></noscript>
+  <form id="finder-form">
+    <p>
+      <label for="finder-root">Root note</label>
+      <select id="finder-root">
+        <option value="C">C</option>
+        <option value="C#">C sharp or D flat</option>
+        <option value="D">D</option>
+        <option value="D#">D sharp or E flat</option>
+        <option value="E">E</option>
+        <option value="F">F</option>
+        <option value="F#">F sharp or G flat</option>
+        <option value="G">G</option>
+        <option value="G#">G sharp or A flat</option>
+        <option value="A">A</option>
+        <option value="A#">A sharp or B flat</option>
+        <option value="B">B</option>
+      </select>
+    </p>
+    <p>
+      <label for="finder-quality">Chord type</label>
+      <select id="finder-quality">
+        <option value="major">Major</option>
+        <option value="minor">Minor</option>
+      </select>
+    </p>
+  </form>
+  <p role="status" id="finder-status"></p>
+  <nav class="toc" aria-labelledby="toc-heading">
+    <h2 id="toc-heading">Voicings shown</h2>
+    <ul id="toc-list"></ul>
+  </nav>
+  <div id="content"></div>
+</main>
+<footer>
+  <p>Accessible Guitar Reference — text-first guitar guides for blind and visually impaired players.</p>
+</footer>
+<!-- Classic scripts on purpose (the site works when opened straight from disk).
+     Order matters: data, then settings, then renderer, then page glue. -->
+<script src="data/notes.js"></script>
+<script src="data/open-chords.js"></script>
+<script src="data/power-chords.js"></script>
+<script src="data/triads.js"></script>
+<script src="data/barre-chords.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/renderer.js"></script>
+<script src="js/page.js"></script>
+</body>
+</html>

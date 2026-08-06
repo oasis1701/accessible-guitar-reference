@@ -37,6 +37,10 @@ globalThis.AGR = globalThis.AGR || {};
     "Bb": "B flat", "B": "B", "Cb": "C flat"
   };
 
+  // Canonical sharp spelling for each pitch class (0 to 11). Used by the
+  // chord finder's root menu and the validator's all-roots sweep.
+  AGR.pcSpelling = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+
   // Chord qualities as semitone intervals from the root.
   // "required" intervals must all be present; "optional" ones may be present;
   // any other interval is an error. The validator enforces this.

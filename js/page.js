@@ -27,6 +27,7 @@
   function descriptionNodes(desc) {
     var nodes = [];
     if (desc.intro) nodes.push(el("p", desc.intro, { "class": "shape-intro" }));
+    if (desc.barre) nodes.push(el("p", desc.barre));
     if (desc.kind === "prose") {
       nodes.push(el("p", desc.text));
     } else {
@@ -112,6 +113,154 @@
     });
   }
 
+  function renderBarreChords() {
+    var groups = [
+      ["major", "Major barre shapes"],
+      ["minor", "Minor barre shapes"]
+    ];
+    groups.forEach(function (group) {
+      content().appendChild(el("h2", group[1]));
+      AGR.barreShapes
+        .filter(function (shape) { return shape.quality === group[0]; })
+        .forEach(function (shape) { appendShape(content(), toc(), shape); });
+    });
+  }
+
+  // --- Chord finder ---
+
+  var QUALITY_WORD = { major: "major", minor: "minor" };
+
+  function appendVoicing(container, tocUl, shape, example) {
+    var chord = AGR.render.instantiateShape(shape, example);
+    var anchor = shape.strings.filter(function (e) { return e.anchor; })[0];
+    var heading = chord.name + (shape.variantLabel ? ", " + shape.variantLabel : "");
+    container.appendChild(el("h3", heading, { id: chord.id }));
+    container.appendChild(el("p",
+      "Root at the " + AGR.render.ordinal(example.anchorFret) + " fret of the " +
+      AGR.render.stringLabel(anchor.string, settings.stringNaming) + ".",
+      { "class": "example-lead" }));
+    appendNodes(container, descriptionNodes(AGR.render.describeChord(chord, settings)));
+    addTocEntry(tocUl, chord.id, heading);
+  }
+
+  function placedForRoot(shapes, pc) {
+    var placed = [];
+    shapes.forEach(function (shape) {
+      AGR.render.shapePositions(shape, pc).forEach(function (fret) {
+        placed.push({ shape: shape, fret: fret });
+      });
+    });
+    placed.sort(function (a, b) { return a.fret - b.fret; });
+    return placed;
+  }
+
+  function initChordFinder() {
+    var rootSelect = document.getElementById("finder-root");
+    var qualitySelect = document.getElementById("finder-quality");
+    var status = document.getElementById("finder-status");
+
+    function currentSlug() {
+      return AGR.render.slugNote(rootSelect.value) + "-" + qualitySelect.value;
+    }
+
+    function applyHash() {
+      var hash = (location.hash || "").replace("#", "");
+      if (!hash) return;
+      var parts = hash.split("-");
+      var quality = parts.pop();
+      var rootSlug = parts.join("-");
+      var spelling = AGR.pcSpelling.filter(function (s) {
+        return AGR.render.slugNote(s) === rootSlug;
+      })[0];
+      if (spelling && QUALITY_WORD[quality]) {
+        rootSelect.value = spelling;
+        qualitySelect.value = quality;
+      }
+    }
+
+    function renderResults(announce) {
+      var box = content();
+      var tocUl = toc();
+      box.textContent = "";
+      tocUl.textContent = "";
+      var rootSpelling = rootSelect.value;
+      var pc = AGR.pitchClass[rootSpelling];
+      var quality = qualitySelect.value;
+      var chordName = AGR.render.displayNote(rootSpelling) + " " + QUALITY_WORD[quality];
+      var count = 0;
+
+      var open = AGR.openChords.filter(function (c) {
+        return AGR.pitchClass[c.root] === pc && c.quality === quality;
+      });
+      if (open.length > 0) {
+        box.appendChild(el("h2", "Open chord"));
+        open.forEach(function (c) {
+          appendChord(box, tocUl, c);
+          count += 1;
+        });
+      }
+
+      var barres = placedForRoot(AGR.barreShapes.filter(function (s) {
+        return s.quality === quality;
+      }), pc);
+      if (barres.length > 0) {
+        box.appendChild(el("h2", "Barre chords"));
+        barres.forEach(function (p) {
+          appendVoicing(box, tocUl, p.shape, { root: rootSpelling, anchorFret: p.fret });
+          count += 1;
+        });
+      }
+
+      var triads = placedForRoot(AGR.triadShapes.filter(function (s) {
+        return s.quality === quality;
+      }), pc);
+      if (triads.length > 0) {
+        box.appendChild(el("h2", "Triads"));
+        triads.forEach(function (p) {
+          appendVoicing(box, tocUl, p.shape, { root: rootSpelling, anchorFret: p.fret });
+          count += 1;
+        });
+      }
+
+      var openPower = AGR.powerChords.filter(function (c) {
+        return AGR.pitchClass[c.root] === pc;
+      });
+      var movablePower = placedForRoot(AGR.powerShapes, pc);
+      if (openPower.length > 0 || movablePower.length > 0) {
+        box.appendChild(el("h2", "Power chords, which fit major and minor alike"));
+        openPower.forEach(function (c) {
+          appendChord(box, tocUl, c);
+          count += 1;
+        });
+        movablePower.forEach(function (p) {
+          appendVoicing(box, tocUl, p.shape, { root: rootSpelling, anchorFret: p.fret });
+          count += 1;
+        });
+      }
+
+      if (announce) {
+        status.textContent = "Showing " + count + " ways to play " + chordName + ".";
+      }
+      try {
+        history.replaceState(null, "", "#" + currentSlug());
+      } catch (error) {
+        // Some file:// contexts refuse history updates; the page still works.
+      }
+    }
+
+    applyHash();
+    renderResults(false);
+    rootSelect.addEventListener("change", function () { renderResults(true); });
+    qualitySelect.addEventListener("change", function () { renderResults(true); });
+    // Arriving at a new #chord hash without a full page load (a link on this
+    // page, or the back key) must re-render too. replaceState does not fire
+    // this event, so our own updates cause no loop.
+    window.addEventListener("hashchange", function () {
+      applyHash();
+      renderResults(true);
+    });
+  }
+
   // --- Settings page ---
 
   var GROUP_LABEL = { format: "Description format", stringNaming: "String naming" };
@@ -163,7 +312,9 @@
   var registry = {
     "open-chords": renderOpenChords,
     "power-chords": renderPowerChords,
+    "barre-chords": renderBarreChords,
     "triads": renderTriads,
+    "chord-finder": initChordFinder,
     "settings": initSettingsPage
   };
 

@@ -20,6 +20,7 @@ const path = require("path");
   ["data", "open-chords.js"],
   ["data", "power-chords.js"],
   ["data", "triads.js"],
+  ["data", "barre-chords.js"],
   ["js", "settings.js"],
   ["js", "renderer.js"]
 ].forEach((parts) => require(path.join(__dirname, "..", ...parts)));
@@ -44,7 +45,7 @@ const FINGER_RANK = { index: 1, middle: 2, ring: 3, pinky: 4 };
 const ID_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 const fixedChords = [...AGR.openChords, ...AGR.powerChords];
-const shapes = [...AGR.powerShapes, ...AGR.triadShapes];
+const shapes = [...AGR.powerShapes, ...AGR.triadShapes, ...AGR.barreShapes];
 
 // ---------- Phase A: schema ----------
 
@@ -114,6 +115,24 @@ shapes.forEach((shape) => {
   if (!["root", "first", "second"].includes(shape.inversion)) {
     error(context, `unknown inversion "${shape.inversion}"`);
   }
+  (shape.barres || []).forEach((b, i) => {
+    const bc = `${context} barre ${i}`;
+    if (!FINGERS.includes(b.finger)) error(bc, `unknown finger "${b.finger}"`);
+    if (!Number.isInteger(b.offset)) error(bc, "needs an integer offset");
+    if (!Number.isInteger(b.fromString) || !Number.isInteger(b.toString) ||
+        b.fromString <= b.toString || b.fromString > 6 || b.toString < 1) {
+      error(bc, "span must run from a thicker string to a thinner string");
+      return;
+    }
+    const inSpan = shape.strings.filter((e) => e.string <= b.fromString && e.string >= b.toString);
+    inSpan.forEach((e) => {
+      if (e.action === "open") error(bc, `string ${e.string} is open inside the barre span`);
+      if (e.action === "fret" && e.offset < b.offset) error(bc, `string ${e.string} is fretted behind the barre`);
+    });
+    const covered = inSpan.filter((e) =>
+      e.action === "fret" && e.finger === b.finger && e.offset === b.offset);
+    if (covered.length < 2) error(bc, "a barre should cover at least two sounding strings");
+  });
   if (!Array.isArray(shape.examples) || shape.examples.length === 0) {
     error(context, "needs at least one example");
     return;
@@ -230,6 +249,7 @@ const BANNED_WORDS = /\b(up|down|left|right)\b/i;
 function collectText(desc) {
   const parts = [];
   if (desc.intro) parts.push(desc.intro);
+  if (desc.barre) parts.push(desc.barre);
   if (desc.kind === "prose") {
     parts.push(desc.text);
   } else {
@@ -299,11 +319,36 @@ shapes.forEach((shape) => {
   });
 });
 
+// ---------- Phase D: all-roots sweep ----------
+// Instantiate every movable shape at every one of the 12 roots, at every
+// position the chord finder would compute, and prove the music and the
+// rendered text of each. Also guarantees the finder always has at least one
+// position to offer for any root.
+
+let sweepCount = 0;
+shapes.forEach((shape) => {
+  for (let pc = 0; pc < 12; pc++) {
+    const spelling = AGR.pcSpelling[pc];
+    const frets = AGR.render.shapePositions(shape, pc);
+    if (frets.length === 0) {
+      error(`shape ${shape.id}`, `has no playable position for root ${spelling}`);
+      continue;
+    }
+    frets.forEach((fret) => {
+      sweepCount += 1;
+      const context = `shape ${shape.id} sweep ${spelling}@${fret}`;
+      const chord = AGR.render.instantiateShape(shape, { root: spelling, anchorFret: fret });
+      checkMusic(context, chord, { expectBass: "inversion" });
+      lintEverySetting(context, (s) => AGR.render.describeChord(chord, s));
+    });
+  }
+});
+
 // ---------- Summary ----------
 
 const exampleCount = shapes.reduce((n, s) => n + s.examples.length, 0);
 console.log("");
-console.log(`Checked ${fixedChords.length} chords, ${shapes.length} movable shapes, ${exampleCount} shape examples.`);
+console.log(`Checked ${fixedChords.length} chords, ${shapes.length} movable shapes, ${exampleCount} shape examples, and ${sweepCount} all-roots sweep positions.`);
 console.log(`${errors} error(s), ${warnings} warning(s).`);
 if (errors > 0) {
   process.exitCode = 1;

@@ -66,6 +66,7 @@ globalThis.AGR = globalThis.AGR || {};
       family: "power",
       kind: "movable",
       inversion: "root",
+      variantLabel: "root on the 6th string, two fingers",
       strings: [
         { string: 6, action: "fret", offset: 0, finger: "index", role: "root", anchor: true },
         { string: 5, action: "fret", offset: 2, finger: "ring", role: "fifth" },
@@ -88,6 +89,7 @@ globalThis.AGR = globalThis.AGR || {};
       family: "power",
       kind: "movable",
       inversion: "root",
+      variantLabel: "root on the 6th string, three fingers",
       strings: [
         { string: 6, action: "fret", offset: 0, finger: "index", role: "root", anchor: true },
         { string: 5, action: "fret", offset: 2, finger: "ring", role: "fifth" },
@@ -110,6 +112,7 @@ globalThis.AGR = globalThis.AGR || {};
       family: "power",
       kind: "movable",
       inversion: "root",
+      variantLabel: "root on the 5th string, two fingers",
       strings: [
         { string: 6, action: "mute" },
         { string: 5, action: "fret", offset: 0, finger: "index", role: "root", anchor: true },
@@ -132,6 +135,7 @@ globalThis.AGR = globalThis.AGR || {};
       family: "power",
       kind: "movable",
       inversion: "root",
+      variantLabel: "root on the 5th string, three fingers",
       strings: [
         { string: 6, action: "mute" },
         { string: 5, action: "fret", offset: 0, finger: "index", role: "root", anchor: true },

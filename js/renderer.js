@@ -96,6 +96,40 @@ globalThis.AGR = globalThis.AGR || {};
     })) + ".";
   }
 
+  // --- Barre support ---
+  // Per-string entries stay the single source of truth (every covered string
+  // still records its fret and finger); the barres annotation only shapes the prose.
+
+  function isCoveredByBarre(item, entry) {
+    if (!item.barres || entry.action !== "fret") return false;
+    return item.barres.some(function (b) {
+      var sameFret = typeof b.fret === "number" ? entry.fret === b.fret : entry.offset === b.offset;
+      return entry.finger === b.finger && sameFret &&
+        entry.string <= b.fromString && entry.string >= b.toString;
+    });
+  }
+
+  function barreSpan(b, naming) {
+    var count = b.fromString - b.toString + 1;
+    var countText = count === 6 ? "all six strings" : COUNT_WORDS[count] + " strings";
+    return countText + ", from the " + stringLabel(b.fromString, naming) +
+      " through the " + stringLabel(b.toString, naming);
+  }
+
+  function barreAt(b) {
+    if (typeof b.fret === "number") return "at the " + ordinal(b.fret) + " fret";
+    if (b.offset === 0) return "at the root fret";
+    return "at " + relativeFret({ offset: b.offset });
+  }
+
+  function barreParagraph(item, naming) {
+    if (!item.barres || item.barres.length === 0) return "";
+    return item.barres.map(function (b) {
+      return "Barre " + barreSpan(b, naming) + ", with your " + fingerPhrase(b.finger) +
+        ", " + barreAt(b) + ".";
+    }).join(" ");
+  }
+
   // --- Fret wording: concrete frets vs. movable-shape offsets ---
 
   function concreteFret(entry) {
@@ -134,16 +168,21 @@ globalThis.AGR = globalThis.AGR || {};
       var label = stringLabel(entry.string, naming);
       if (entry.action === "mute") return label + ": do not play.";
       if (entry.action === "open") return label + ": open.";
-      return label + ": " + fretText(entry) + ", " + fingerPhrase(entry.finger) + "." +
+      var how = isCoveredByBarre(item, entry) ? "covered by the barre" : fingerPhrase(entry.finger);
+      return label + ": " + fretText(entry) + ", " + how + "." +
         (roleText ? roleText(entry) : "");
     });
   }
 
   function byFingerLines(item, naming, fretText, roleText) {
     var lines = [];
+    (item.barres || []).forEach(function (b) {
+      lines.push(capitalize(fingerPhrase(b.finger)) + ": barre " + barreSpan(b, naming) +
+        ", " + barreAt(b) + ".");
+    });
     FINGER_ORDER.forEach(function (finger) {
       item.strings.forEach(function (entry) {
-        if (entry.action === "fret" && entry.finger === finger) {
+        if (entry.action === "fret" && entry.finger === finger && !isCoveredByBarre(item, entry)) {
           lines.push(capitalize(fingerPhrase(finger)) + ": " +
             stringLabel(entry.string, naming) + ", " + fretText(entry) + "." +
             (roleText ? roleText(entry) : ""));
@@ -168,7 +207,11 @@ globalThis.AGR = globalThis.AGR || {};
 
   function proseSentences(item, naming, isRelative) {
     var sentences = [];
-    var fretted = byAction(item, "fret");
+    var barreText = barreParagraph(item, naming);
+    if (barreText) sentences.push(barreText);
+    var fretted = byAction(item, "fret").filter(function (entry) {
+      return !isCoveredByBarre(item, entry);
+    });
     if (fretted.length > 0) {
       sentences.push("Press " + joinList(fretted.map(function (entry) {
         var where = isRelative
@@ -208,10 +251,17 @@ globalThis.AGR = globalThis.AGR || {};
     if (settings.format === "prose") {
       return { kind: "prose", text: proseSentences(chord, naming, false), tips: chord.tips || "" };
     }
-    var lines = settings.format === "by-finger"
-      ? byFingerLines(chord, naming, concreteFret)
-      : perStringLines(chord, naming, concreteFret);
-    return { kind: "list", lines: lines, strum: strumText(chord, naming), tips: chord.tips || "" };
+    if (settings.format === "by-finger") {
+      // The barre gets its own finger line inside byFingerLines.
+      return { kind: "list", lines: byFingerLines(chord, naming, concreteFret), strum: strumText(chord, naming), tips: chord.tips || "" };
+    }
+    return {
+      kind: "list",
+      barre: barreParagraph(chord, naming),
+      lines: perStringLines(chord, naming, concreteFret),
+      strum: strumText(chord, naming),
+      tips: chord.tips || ""
+    };
   }
 
   // Describe a movable shape relative to its root fret.
@@ -226,10 +276,17 @@ globalThis.AGR = globalThis.AGR || {};
       return { kind: "prose", intro: intro, text: proseSentences(shape, naming, true), tips: shape.tips || "" };
     }
     var roleText = function (entry) { return roleSentence(shape, entry); };
-    var lines = settings.format === "by-finger"
-      ? byFingerLines(shape, naming, relativeFret, roleText)
-      : perStringLines(shape, naming, relativeFret, roleText);
-    return { kind: "list", intro: intro, lines: lines, strum: strumText(shape, naming), tips: shape.tips || "" };
+    if (settings.format === "by-finger") {
+      return { kind: "list", intro: intro, lines: byFingerLines(shape, naming, relativeFret, roleText), strum: strumText(shape, naming), tips: shape.tips || "" };
+    }
+    return {
+      kind: "list",
+      intro: intro,
+      barre: barreParagraph(shape, naming),
+      lines: perStringLines(shape, naming, relativeFret, roleText),
+      strum: strumText(shape, naming),
+      tips: shape.tips || ""
+    };
   }
 
   function slugNote(note) {
@@ -266,7 +323,7 @@ globalThis.AGR = globalThis.AGR || {};
         finger: entry.finger
       };
     });
-    return {
+    var chord = {
       id: shape.id + "-" + slugNote(example.root) + "-" + example.anchorFret,
       name: instantiatedName(shape, example),
       root: example.root,
@@ -275,12 +332,39 @@ globalThis.AGR = globalThis.AGR || {};
       strings: strings,
       tips: ""
     };
+    if (shape.barres) {
+      chord.barres = shape.barres.map(function (b) {
+        return {
+          finger: b.finger,
+          fret: example.anchorFret + b.offset,
+          fromString: b.fromString,
+          toString: b.toString
+        };
+      });
+    }
+    return chord;
+  }
+
+  // All anchor frets where this shape can play the given root pitch class.
+  // Shared by the chord finder page and the validator's all-roots sweep.
+  function shapePositions(shape, rootPc) {
+    var anchor = shape.strings.filter(function (e) { return e.anchor; })[0];
+    var openPc = AGR.tuning.stringMidi[anchor.string] % 12;
+    var distance = ((rootPc - openPc) % 12 + 12) % 12;
+    var lo = shape.fretRange ? shape.fretRange[0] : 1;
+    var hi = shape.fretRange ? shape.fretRange[1] : 12;
+    return [distance, distance + 12, distance + 24].filter(function (fret) {
+      return fret >= 1 && fret >= lo && fret <= hi;
+    });
   }
 
   AGR.render = {
     describeChord: describeChord,
     describeShapeRelative: describeShapeRelative,
     instantiateShape: instantiateShape,
+    shapePositions: shapePositions,
+    isCoveredByBarre: isCoveredByBarre,
+    slugNote: slugNote,
     stringLabel: stringLabel,
     ordinal: ordinal,
     displayNote: displayNote
