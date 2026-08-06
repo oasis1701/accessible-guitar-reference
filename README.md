@@ -8,6 +8,7 @@ Chord charts, fretboard diagrams, and video lessons assume you can see them. Thi
 
 ## What's inside
 
+- **Fretboard guide** — every note on every string with landmark frets called out, the tuning relationships, and the four octave shapes, with computed (never hand-typed) note tables.
 - **Open chords** — the 14 everyday "cowboy" chords (C, A, G, E, D, the minors, the dominant 7ths).
 - **Power chords** — open E5, A5, D5, plus movable two- and three-finger shapes for any root.
 - **Barre chords** — the movable E and A shapes, major and minor, with barres described in full sentences.

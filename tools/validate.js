@@ -21,6 +21,7 @@ const path = require("path");
   ["data", "power-chords.js"],
   ["data", "triads.js"],
   ["data", "barre-chords.js"],
+  ["data", "octaves.js"],
   ["js", "settings.js"],
   ["js", "renderer.js"]
 ].forEach((parts) => require(path.join(__dirname, "..", ...parts)));
@@ -45,7 +46,7 @@ const FINGER_RANK = { index: 1, middle: 2, ring: 3, pinky: 4 };
 const ID_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 const fixedChords = [...AGR.openChords, ...AGR.powerChords];
-const shapes = [...AGR.powerShapes, ...AGR.triadShapes, ...AGR.barreShapes];
+const shapes = [...AGR.powerShapes, ...AGR.triadShapes, ...AGR.barreShapes, ...AGR.octaveShapes];
 
 // ---------- Phase A: schema ----------
 
@@ -343,6 +344,35 @@ shapes.forEach((shape) => {
     });
   }
 });
+
+// ---------- Phase E: fretboard guide lines ----------
+// The note tables on fretboard.html are generated, so lint them like
+// everything else: 13 lines per string, clean text, deterministic.
+
+for (let s = 6; s >= 1; s--) {
+  NAMINGS.forEach((naming) => {
+    const context = `fretboard string ${s} [${naming}]`;
+    let first;
+    let second;
+    try {
+      first = AGR.render.fretboardStringLines(s, naming);
+      second = AGR.render.fretboardStringLines(s, naming);
+    } catch (e) {
+      error(context, `renderer threw: ${e.message}`);
+      return;
+    }
+    if (first.length !== 13) error(context, `expected 13 lines, found ${first.length}`);
+    if (JSON.stringify(first) !== JSON.stringify(second)) error(context, "output is not deterministic");
+    first.forEach((text) => {
+      if (typeof text !== "string" || text.length === 0) {
+        error(context, "empty line");
+        return;
+      }
+      if (BANNED_GLYPHS.test(text)) error(context, `banned symbol in: "${text}"`);
+      if (BANNED_WORDS.test(text)) error(context, `banned direction word in: "${text}"`);
+    });
+  });
+}
 
 // ---------- Summary ----------
 

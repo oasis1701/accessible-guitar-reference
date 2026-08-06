@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fretboard guide — Accessible Guitar Reference</title>
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body data-category="fretboard">
+<a class="skip-link" href="#main">Skip to main content</a>
+<header>
+  <p class="site-title">Accessible Guitar Reference</p>
+  <nav aria-label="Site">
+    <ul>
+      <li><a href="index.html">Home</a></li>
+      <li><a href="conventions.html">How to read this guide</a></li>
+      <li><a href="fretboard.html" aria-current="page">Fretboard</a></li>
+      <li><a href="open-chords.html">Open chords</a></li>
+      <li><a href="power-chords.html">Power chords</a></li>
+      <li><a href="barre-chords.html">Barre chords</a></li>
+      <li><a href="triads.html">Triads</a></li>
+      <li><a href="chord-finder.html">Chord finder</a></li>
+      <li><a href="settings.html">Settings</a></li>
+    </ul>
+  </nav>
+</header>
+<main id="main">
+  <h1>Fretboard guide</h1>
+  <p>Knowing the fretboard means knowing which note lives at every string and fret. This page gives you the raw map, the landmarks that organize it, and the octave shapes that shrink the job: learn two strings well, and the shapes hand you the rest. Each string's note table is a level 3 heading, as is each octave shape.</p>
+  <noscript><p>This page builds its note tables with JavaScript. Please allow JavaScript for this site; it loads no external code.</p></noscript>
+  <nav class="toc" aria-labelledby="toc-heading">
+    <h2 id="toc-heading">Strings and octave shapes on this page</h2>
+    <ul id="toc-list"></ul>
+  </nav>
+
+  <h2>How the fretboard is laid out</h2>
+  <p>Each fret raises a string by one semitone, and there are twelve semitones in an octave, so every string repeats itself at the 12th fret, an octave higher. Between the seven natural notes, five frets carry the sharps and flats; each of those has two names for the same pitch, like F sharp and G flat. There is no sharp or flat between B and C, or between E and F — those pairs sit on neighboring frets.</p>
+  <p>Guitar makers mark frets 3, 5, 7, 9, and 12 with dots, and the 12th fret gets a double dot. Sighted players lean on these landmarks constantly, so the tables below call them out on every string. If you memorize only the landmark frets at first, you can reach every other note by counting one fret from a landmark.</p>
+
+  <h2>Notes on each string</h2>
+  <p>Every table runs from the open string to the 12th fret. Sharps and flats are given with both of their names.</p>
+  <div id="content"></div>
+
+  <h2>How the strings relate</h2>
+  <p>The tuning itself is a map. Press any string at the 5th fret and you get the same note as the next thinner string played open — except on the 3rd string, where it happens at the 4th fret instead. That one exception is the B string shifting everything by a fret, and it is the same shift you will meet in the octave shapes below.</p>
+  <p>A practical plan many teachers give, and the one this page is built around: first learn the 6th string and the 5th string cold, because every power chord, barre chord, and most movable shapes take their name from a root on one of those two strings. Then use the octave shapes to find any of those notes again on the thinner strings, instead of memorizing four more strings from scratch.</p>
+
+  <h2>Octave shapes</h2>
+  <p>An octave shape plays the same note in two places at once. Slide it anywhere: whatever the thicker string's note is, the thinner string repeats it an octave higher. These four shapes cover the whole neck.</p>
+  <div id="octave-content"></div>
+
+  <h2>Making the landmarks touchable</h2>
+  <p>The dots on the fretboard face are visual, and the small side dots are usually inlaid flush, so many blind players add their own tactile markers: a small bump sticker or a short strip of textured tape on the back of the neck or along its edge at frets 3, 5, 7, and 12. A marker at the 5th fret alone already anchors most of what this page teaches. Locating dots by touch beats counting frets from the nut every time, especially mid-song.</p>
+</main>
+<footer>
+  <p>Accessible Guitar Reference — text-first guitar guides for blind and visually impaired players.</p>
+</footer>
+<!-- Classic scripts on purpose (the site works when opened straight from disk).
+     Order matters: data, then settings, then renderer, then page glue. -->
+<script src="data/notes.js"></script>
+<script src="data/octaves.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/renderer.js"></script>
+<script src="js/page.js"></script>
+</body>
+</html>

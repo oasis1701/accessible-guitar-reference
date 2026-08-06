@@ -41,6 +41,10 @@ globalThis.AGR = globalThis.AGR || {};
   // chord finder's root menu and the validator's all-roots sweep.
   AGR.pcSpelling = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
+  // Flat spelling for the five accidental pitch classes, so the fretboard
+  // guide can give both names: "F sharp or G flat".
+  AGR.pcFlat = { 1: "Db", 3: "Eb", 6: "Gb", 8: "Ab", 10: "Bb" };
+
   // Chord qualities as semitone intervals from the root.
   // "required" intervals must all be present; "optional" ones may be present;
   // any other interval is an error. The validator enforces this.
@@ -49,7 +53,8 @@ globalThis.AGR = globalThis.AGR || {};
     minor: { label: "minor", required: [0, 3, 7], optional: [] },
     // Open C7 has no 5th, so the 5th is optional in dominant 7th chords.
     dom7: { label: "dominant 7th", required: [0, 4, 10], optional: [7] },
-    power: { label: "power chord", required: [0, 7], optional: [] }
+    power: { label: "power chord", required: [0, 7], optional: [] },
+    octave: { label: "octave", required: [0], optional: [] }
   };
 
   // Which intervals each named role may sound (movable shapes declare roles).

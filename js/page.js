@@ -126,6 +126,26 @@
     });
   }
 
+  function renderFretboard() {
+    var notesBox = content();
+    var octavesBox = document.getElementById("octave-content");
+    var tocUl = toc();
+    for (var s = 6; s >= 1; s--) {
+      var label = AGR.render.stringLabel(s, settings.stringNaming);
+      var id = "string-" + s;
+      notesBox.appendChild(el("h3", label, { id: id }));
+      var ul = document.createElement("ul");
+      AGR.render.fretboardStringLines(s, settings.stringNaming).forEach(function (line) {
+        ul.appendChild(el("li", line));
+      });
+      notesBox.appendChild(ul);
+      addTocEntry(tocUl, id, label);
+    }
+    AGR.octaveShapes.forEach(function (shape) {
+      appendShape(octavesBox, tocUl, shape);
+    });
+  }
+
   // --- Chord finder ---
 
   var QUALITY_WORD = { major: "major", minor: "minor" };
@@ -315,6 +335,7 @@
     "barre-chords": renderBarreChords,
     "triads": renderTriads,
     "chord-finder": initChordFinder,
+    "fretboard": renderFretboard,
     "settings": initSettingsPage
   };
 

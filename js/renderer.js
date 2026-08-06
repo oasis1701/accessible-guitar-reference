@@ -271,7 +271,7 @@ globalThis.AGR = globalThis.AGR || {};
     var anchor = shape.strings.filter(function (entry) { return entry.anchor; })[0];
     var intro = "This shape is movable. The root note sits on the " +
       stringLabel(anchor.string, naming) +
-      "; the fret you place it on is called the root fret, and the chord takes its name from that note.";
+      "; the fret you place it on is called the root fret, and the shape takes its name from that note.";
     if (settings.format === "prose") {
       return { kind: "prose", intro: intro, text: proseSentences(shape, naming, true), tips: shape.tips || "" };
     }
@@ -303,6 +303,9 @@ globalThis.AGR = globalThis.AGR || {};
     if (shape.quality === "power") {
       // "G5" reads well; add a space only when the root has an accidental.
       return example.root.length === 1 ? rootDisplay + "5" : rootDisplay + " 5";
+    }
+    if (shape.family === "octave") {
+      return rootDisplay + " octaves";
     }
     var quality = AGR.qualities[shape.quality].label;
     if (shape.family === "triad") {
@@ -345,6 +348,47 @@ globalThis.AGR = globalThis.AGR || {};
     return chord;
   }
 
+  // --- Fretboard guide lines ---
+
+  function noteNamesForPc(pc) {
+    var sharp = displayNote(AGR.pcSpelling[pc]);
+    var flat = AGR.pcFlat[pc];
+    return flat ? sharp + " or " + displayNote(flat) : sharp;
+  }
+
+  // On which fret does this string sound the same note as the next thinner
+  // string played open? The 5th fret everywhere, except the 3rd string (4th fret).
+  function tuningNeighborFret(stringNumber) {
+    if (stringNumber === 1) return null;
+    return stringNumber === 3 ? 4 : 5;
+  }
+
+  // The 13 lines (open plus frets 1 to 12) of one string's note table.
+  function fretboardStringLines(stringNumber, naming) {
+    var openMidi = AGR.tuning.stringMidi[stringNumber];
+    var lines = [];
+    for (var fret = 0; fret <= 12; fret++) {
+      var names = noteNamesForPc((openMidi + fret) % 12);
+      var text;
+      if (fret === 0) {
+        text = "Open: " + names + ".";
+      } else if (fret === 12) {
+        text = "12th fret: " + names + ". Double landmark fret." +
+          " One octave higher than the open string; from here the pattern repeats.";
+      } else {
+        text = ordinal(fret) + " fret: " + names + ".";
+        if (fret === 3 || fret === 5 || fret === 7 || fret === 9) {
+          text += " Landmark fret.";
+        }
+      }
+      if (fret !== 0 && fret === tuningNeighborFret(stringNumber)) {
+        text += " Same note as the open " + stringLabel(stringNumber - 1, naming) + ".";
+      }
+      lines.push(text);
+    }
+    return lines;
+  }
+
   // All anchor frets where this shape can play the given root pitch class.
   // Shared by the chord finder page and the validator's all-roots sweep.
   function shapePositions(shape, rootPc) {
@@ -363,6 +407,7 @@ globalThis.AGR = globalThis.AGR || {};
     describeShapeRelative: describeShapeRelative,
     instantiateShape: instantiateShape,
     shapePositions: shapePositions,
+    fretboardStringLines: fretboardStringLines,
     isCoveredByBarre: isCoveredByBarre,
     slugNote: slugNote,
     stringLabel: stringLabel,
