@@ -54,7 +54,9 @@
       </select>
     </p>
   </form>
-  <p role="status" id="finder-status"></p>
+  <!-- Deliberately not a live region: announcing on every combo box step
+       talks over the screen reader. The count is plain text, read on demand. -->
+  <p id="finder-status"></p>
   <nav class="toc" aria-labelledby="toc-heading">
     <h2 id="toc-heading">Voicings shown</h2>
     <ul id="toc-list"></ul>

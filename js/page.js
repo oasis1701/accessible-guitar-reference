@@ -178,7 +178,7 @@
       }
     }
 
-    function renderResults(announce) {
+    function renderResults() {
       var box = content();
       var tocUl = toc();
       box.textContent = "";
@@ -238,9 +238,9 @@
         });
       }
 
-      if (announce) {
-        status.textContent = "Showing " + count + " ways to play " + chordName + ".";
-      }
+      // Plain text, deliberately not announced: a live region here would speak
+      // over every arrow step while the user scrolls the combo box.
+      status.textContent = "Showing " + count + " ways to play " + chordName + ".";
       try {
         history.replaceState(null, "", "#" + currentSlug());
       } catch (error) {
@@ -249,15 +249,15 @@
     }
 
     applyHash();
-    renderResults(false);
-    rootSelect.addEventListener("change", function () { renderResults(true); });
-    qualitySelect.addEventListener("change", function () { renderResults(true); });
+    renderResults();
+    rootSelect.addEventListener("change", function () { renderResults(); });
+    qualitySelect.addEventListener("change", function () { renderResults(); });
     // Arriving at a new #chord hash without a full page load (a link on this
     // page, or the back key) must re-render too. replaceState does not fire
     // this event, so our own updates cause no loop.
     window.addEventListener("hashchange", function () {
       applyHash();
-      renderResults(true);
+      renderResults();
     });
   }
 
