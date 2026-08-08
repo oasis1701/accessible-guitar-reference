@@ -84,7 +84,7 @@ globalThis.AGR = globalThis.AGR || {};
       var samples = readInto(analyser, buffer);
       var hz = AGR.pitch.detectFrequency(samples, context.sampleRate);
       var raw = hz === null ? null : AGR.pitch.frequencyToPitch(hz);
-      callbacks.onTick(smoother.push(raw), raw);
+      callbacks.onTick(smoother.push(raw), raw, AGR.pitch.signalLevel(samples));
     }, AGR.pitch.POLL_MS);
     running = {
       context: context,
@@ -145,11 +145,13 @@ globalThis.AGR = globalThis.AGR || {};
     pending = attempt;
     navigator.mediaDevices.getUserMedia({
       audio: {
-        // Voice-call processing mangles a ringing string; the tuner wants
-        // the raw signal.
+        // Echo cancellation and noise suppression mangle a ringing string,
+        // so they stay off. Auto gain stays ON: it does not move the pitch
+        // (the detector normalizes amplitude), and an electric guitar played
+        // without an amplifier is far too quiet for a microphone otherwise.
         echoCancellation: false,
         noiseSuppression: false,
-        autoGainControl: false
+        autoGainControl: true
       }
     }).then(function (stream) {
       if (attempt.cancelled) {

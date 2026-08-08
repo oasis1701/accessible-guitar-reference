@@ -16,12 +16,19 @@ globalThis.AGR = globalThis.AGR || {};
   var REFERENCE_MIDI = 69;
 
   // Detection gates. The open strings span 82 to 330 hertz; the range leaves
-  // room for fretted notes while rejecting rumble and hiss.
-  var MIN_HZ = 60;
+  // room for fretted notes while rejecting rumble, hiss, and mains hum.
+  var MIN_HZ = 65;        // Above mains hum (50 and 60 hertz); drop D is 73.
   var MAX_HZ = 1000;
-  var RMS_GATE = 0.005;   // Quieter than this counts as silence.
+  // Quieter than this counts as silence. Deliberately near the noise floor:
+  // an electric guitar played without an amplifier reaches a microphone very
+  // quietly, and the clarity gate is what actually rejects noise.
+  var RMS_GATE = 0.0005;
   var CLARITY_MIN = 0.9;  // Below this the sound has no single clear pitch.
   var PEAK_PICK_K = 0.9;  // McLeod first-peak rule; see detectFrequency.
+  // Below this the input is not merely quiet but dead: digital silence from
+  // a muted device or a browser privacy shield. Real microphones always
+  // carry at least a little noise.
+  var NO_SIGNAL_LEVEL = 0.000001;
 
   // Stability window: five readings at the 100 ms poll is half a second.
   var SMOOTH_WINDOW = 5;
@@ -37,6 +44,24 @@ globalThis.AGR = globalThis.AGR || {};
 
   function midiToFrequency(midi) {
     return REFERENCE_HZ * Math.pow(2, (midi - REFERENCE_MIDI) / 12);
+  }
+
+  // Root-mean-square level of the buffer after removing any DC offset.
+  // Lets the page tell a dead input (digital silence) from a quiet room
+  // without running the full detector.
+  function signalLevel(samples) {
+    var n = samples.length;
+    if (n === 0) return 0;
+    var mean = 0;
+    var i;
+    for (i = 0; i < n; i++) mean += samples[i];
+    mean /= n;
+    var sumSq = 0;
+    for (i = 0; i < n; i++) {
+      var v = samples[i] - mean;
+      sumSq += v * v;
+    }
+    return Math.sqrt(sumSq / n);
   }
 
   // Nearest MIDI note plus the signed distance from it in cents (hundredths
@@ -88,7 +113,8 @@ globalThis.AGR = globalThis.AGR || {};
 
     // Candidate peaks: the maximum of each positive region after the curve
     // has first dipped below zero (which skips the trivial peak at lag zero).
-    // A region still open at maxLag is a truncated peak and is not trusted.
+    // A peak sitting exactly at maxLag cannot be interpolated and is not
+    // trusted; a peak inside a region that maxLag merely cuts short is fine.
     var scan = 1;
     while (scan <= maxLag && nsdf[scan] > 0) scan++;
     if (scan > maxLag) return null;
@@ -248,8 +274,10 @@ globalThis.AGR = globalThis.AGR || {};
     midiToFrequency: midiToFrequency,
     frequencyToPitch: frequencyToPitch,
     detectFrequency: detectFrequency,
+    signalLevel: signalLevel,
     createSmoother: createSmoother,
     createAnnouncer: createAnnouncer,
+    NO_SIGNAL_LEVEL: NO_SIGNAL_LEVEL,
     // Shared facts, so js/tuner.js, js/page.js, and tools/validate.js all
     // agree with the gates above.
     POLL_MS: 100,

@@ -31,7 +31,7 @@ Must exit clean. It verifies the schema, recomputes every chord's real pitches t
 - `js/renderer.js` — ALL text generation, including the tuner phrases (`tunerReading`, `tunerStateText`). Three formats (per-string, by-finger, prose) times three string namings (both, number, name). `stringLabel()` is the only place naming logic lives.
 - `js/settings.js` — localStorage key `agr:settings:v1`, guarded so the site works when storage throws.
 - `js/pitch.js` — pure tuner math, Node-loadable: NSDF pitch detector, frequency conversion, stability smoother, and the announcement gate (`createAnnouncer`). Validator Phase F tests it on synthesized waves and scripted timelines.
-- `js/tuner.js` — browser-only microphone engine for tuner.html (getUserMedia with voice processing disabled, analyser polling, idempotent stop). `tuner.html?selftest` swaps the microphone for an inaudible oscillator so the whole loop runs with no permission, including from file://.
+- `js/tuner.js` — browser-only microphone engine for tuner.html (getUserMedia with echo cancellation and noise suppression off but auto gain ON — quiet unplugged guitars need it and it cannot move the pitch; analyser polling, idempotent stop). `tuner.html?selftest` swaps the microphone for an inaudible oscillator so the whole loop runs with no permission, including from file://.
 - `js/page.js` — browser-only DOM glue, dispatched by `<body data-category>`.
 - HTML pages — one h3 per chord or shape sitewide (screen-reader heading-key navigation), a real list as table of contents, native form elements only, skip link, landmarks.
 - `conventions.html` — the reader-facing grammar contract. Keep it in sync with renderer changes.

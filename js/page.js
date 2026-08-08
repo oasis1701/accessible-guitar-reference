@@ -340,7 +340,10 @@
     var selftest = /[?&]selftest/.test(location.search);
     var muted = false;
     var tunerOn = false;
+    var hadReading = false; // Any stable reading since this start?
     var lastStableAt = 0;
+    var lastRawAt = 0;      // Last tick with a pitch detection, stable or not.
+    var lastAliveAt = 0;    // Last tick with any input signal at all.
     var announcer = AGR.pitch.createAnnouncer();
 
     function stateText(state) {
@@ -367,9 +370,12 @@
     startButton.disabled = false;
     muteButton.disabled = false;
 
-    function onTick(stable, raw) {
+    function onTick(stable, raw, level) {
       var now = Date.now();
+      if (level > AGR.pitch.NO_SIGNAL_LEVEL) lastAliveAt = now;
+      if (raw) lastRawAt = now;
       if (stable) {
+        hadReading = true;
         lastStableAt = now;
         // The plain reading always carries the note name, for on-demand
         // reading; only the announcement may drop it.
@@ -385,7 +391,18 @@
             ? AGR.render.tunerReading(stable, settings.stringNaming, true)
             : bare;
         }
-      } else if (tunerOn && now - lastStableAt > 2000) {
+        return;
+      }
+      // Once a reading exists it stays put, so it can be read on demand
+      // (especially while muted). Before the first one, the paragraph says
+      // what the tuner is hearing, so a silent failure explains itself:
+      // a dead input, sound too unsteady to read, or simply quiet.
+      if (hadReading || !tunerOn || now - lastStableAt <= 2500) return;
+      if (now - lastAliveAt > 2500) {
+        readingP.textContent = stateText("no-signal");
+      } else if (now - lastRawAt <= 2500) {
+        readingP.textContent = stateText("unclear");
+      } else {
         readingP.textContent = stateText("listening");
       }
     }
@@ -400,7 +417,10 @@
       AGR.tuner.start({
         onStarted: function () {
           tunerOn = true;
+          hadReading = false;
           lastStableAt = Date.now();
+          lastRawAt = lastStableAt;
+          lastAliveAt = lastStableAt;
           startButton.disabled = false;
           startButton.textContent = "Stop tuner";
           supportP.textContent = stateText("listening");

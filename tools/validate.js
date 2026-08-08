@@ -465,12 +465,18 @@ for (const rate of TUNER_RATES) {
     expectDetect(`tuner octave trap midi ${midi}, rate ${rate}`,
       synthWave(hz, rate, [[1, 0.35], [2, 1], [3, 0.3]], 0.5), rate, hz, 5);
   }
-  // Silence, noise, and out-of-range sounds must all read as "no pitch".
+  // Silence, noise, out-of-range sounds, and mains hum must all read as
+  // "no pitch".
   expectNull(`tuner null zeros, rate ${rate}`, new Float32Array(TUNER_BUFFER), rate);
   expectNull(`tuner null noise, rate ${rate}`, seededNoise(0.3), rate);
   expectNull(`tuner null 30 hertz, rate ${rate}`, synthWave(30, rate, [[1, 1]], 0.5), rate);
+  expectNull(`tuner null 50 hertz hum, rate ${rate}`, synthWave(50, rate, [[1, 1]], 0.3), rate);
+  expectNull(`tuner null 60 hertz hum, rate ${rate}`, synthWave(60, rate, [[1, 1]], 0.3), rate);
   expectNull(`tuner null 1500 hertz, rate ${rate}`, synthWave(1500, rate, [[1, 1]], 0.5), rate);
-  expectNull(`tuner null quiet, rate ${rate}`, synthWave(110, rate, [[1, 1]], 0.001), rate);
+  expectNull(`tuner null below gate, rate ${rate}`, synthWave(110, rate, [[1, 1]], 0.0003), rate);
+  // Regression for the silent-tuner report (2026-08-07): a very quiet but
+  // clean string must still be read, not gated away as silence.
+  expectDetect(`tuner quiet but clear, rate ${rate}`, synthWave(110, rate, [[1, 1]], 0.002), rate, 110, 2);
 }
 
 // Conversion round trips and the shared in-tune threshold.
@@ -490,6 +496,13 @@ for (const rate of TUNER_RATES) {
   }
   if (AGR.pitch.IN_TUNE_CENTS !== 5) {
     error(c, "IN_TUNE_CENTS must stay 5, matching the renderer's wording");
+  }
+  if (AGR.pitch.signalLevel(new Float32Array(TUNER_BUFFER)) !== 0) {
+    error(c, "digital silence must have a level of exactly zero");
+  }
+  const level = AGR.pitch.signalLevel(synthWave(110, 48000, [[1, 1]], 0.5));
+  if (Math.abs(level - 0.5 / Math.SQRT2) > 0.01) {
+    error(c, `a half-amplitude sine must read near 0.354, got ${level}`);
   }
 }
 
@@ -652,8 +665,9 @@ function runSmoother(pushes) {
   golden({ midi: 45, cents: 6 }, "both", false, "About 5 cents too high. Tune lower.");
 
   const stateKeys = AGR.render.tunerStateKeys;
-  const wantKeys = ["idle", "starting", "listening", "stopped", "insecure",
-    "unsupported", "denied", "denied-file", "no-mic", "busy", "error"];
+  const wantKeys = ["idle", "starting", "listening", "no-signal", "unclear",
+    "stopped", "insecure", "unsupported", "denied", "denied-file", "no-mic",
+    "busy", "error"];
   if (JSON.stringify([...stateKeys].sort()) !== JSON.stringify([...wantKeys].sort())) {
     error("tuner states", `state keys are ${JSON.stringify(stateKeys)}`);
   }

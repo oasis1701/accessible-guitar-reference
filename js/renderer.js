@@ -449,6 +449,8 @@ globalThis.AGR = globalThis.AGR || {};
     "idle": "The tuner is not running. Use the Start tuner button to begin.",
     "starting": "Requesting microphone access. If the browser asks for permission, choose Allow.",
     "listening": "Listening. Play one string at a time, and let it ring.",
+    "no-signal": "The microphone is on, but no sound is arriving at all. Check that the microphone is not muted, and if the browser has extra privacy shields, allow this site to use the microphone fully.",
+    "unclear": "Hearing sound, but nothing steady enough to read. Bring the guitar closer to the microphone, pluck one string on its own, and let it ring.",
     "stopped": "The tuner is stopped and the microphone is off.",
     "insecure": "This page cannot reach the microphone here. Browsers only allow microphone access over a secure https connection, so use the tuner on the live site.",
     "unsupported": "This browser does not support the audio features the tuner needs. Please use a current version of Firefox, Chrome, or Edge.",
