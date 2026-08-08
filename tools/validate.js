@@ -10,6 +10,11 @@
 // Phase C: render lint — render every item under all 9 settings combinations;
 //          no throws, per-string always has 6 lines, no banned symbols or
 //          direction words, deterministic output.
+// Phase D: all-roots sweep — every movable shape at every root, at every
+//          position the finder would offer, music-checked and lint-checked.
+// Phase E: fretboard lines — the generated note tables, linted the same way.
+// Phase F: tuner — prove the pitch detector on synthesized waves and the
+//          announcement gates on scripted timelines; lint every tuner phrase.
 "use strict";
 
 const path = require("path");
@@ -23,6 +28,7 @@ const path = require("path");
   ["data", "barre-chords.js"],
   ["data", "octaves.js"],
   ["js", "settings.js"],
+  ["js", "pitch.js"],
   ["js", "renderer.js"]
 ].forEach((parts) => require(path.join(__dirname, "..", ...parts)));
 
@@ -374,11 +380,321 @@ for (let s = 6; s >= 1; s--) {
   });
 }
 
+// ---------- Phase F: tuner ----------
+// The tuner page's engine is pure (js/pitch.js) and its words come from the
+// renderer, so both are proven here: pitch detection on synthesized
+// waveforms, the stability and announcement gates on scripted timelines,
+// and (further below) every phrase linted like all other generated text.
+
+let tunerDetectorCases = 0;
+let tunerGatingChecks = 0;
+let tunerPhraseTexts = 0;
+
+const TUNER_RATES = [44100, 48000];
+const OPEN_MIDIS = [40, 45, 50, 55, 59, 64];
+const TUNER_BUFFER = 4096;
+
+// A wave as the analyser would hand it over: a Float32Array holding the sum
+// of the given partials ([multiple, weight] pairs), peak-scaled to amplitude.
+function synthWave(freq, sampleRate, partials, amplitude) {
+  const out = new Float32Array(TUNER_BUFFER);
+  let peak = 0;
+  for (let i = 0; i < TUNER_BUFFER; i++) {
+    let v = 0;
+    for (const [mult, weight] of partials) {
+      v += weight * Math.sin((2 * Math.PI * freq * mult * i) / sampleRate);
+    }
+    out[i] = v;
+    peak = Math.max(peak, Math.abs(v));
+  }
+  if (peak > 0) {
+    for (let i = 0; i < TUNER_BUFFER; i++) out[i] = (out[i] / peak) * amplitude;
+  }
+  return out;
+}
+
+// Deterministic noise (Park-Miller sequence): Math.random would make this
+// gate flaky, and the validator must never be flaky.
+function seededNoise(amplitude) {
+  let seed = 123456789;
+  const out = new Float32Array(TUNER_BUFFER);
+  for (let i = 0; i < TUNER_BUFFER; i++) {
+    seed = (seed * 48271) % 2147483647;
+    out[i] = ((seed / 2147483647) * 2 - 1) * amplitude;
+  }
+  return out;
+}
+
+function expectDetect(context, wave, rate, expectedHz, toleranceCents) {
+  tunerDetectorCases += 1;
+  const first = AGR.pitch.detectFrequency(wave, rate);
+  const second = AGR.pitch.detectFrequency(wave, rate);
+  if (first !== second) error(context, "detection is not deterministic");
+  if (first === null) {
+    error(context, `expected ${expectedHz.toFixed(2)} hertz, got null`);
+    return;
+  }
+  const off = Math.abs(1200 * Math.log2(first / expectedHz));
+  if (off > toleranceCents) {
+    error(context, `expected ${expectedHz.toFixed(2)} hertz, got ${first.toFixed(2)}` +
+      ` (${off.toFixed(2)} cents off, tolerance ${toleranceCents})`);
+  }
+}
+
+function expectNull(context, wave, rate) {
+  tunerDetectorCases += 1;
+  const got = AGR.pitch.detectFrequency(wave, rate);
+  if (got !== null) error(context, `expected null, got ${got.toFixed(2)} hertz`);
+}
+
+// Detection: every open string, in tune and 25 cents to either side, as a
+// pure sine and as a guitar-like mix of harmonics, at both common rates.
+const GUITAR_PARTIALS = [[1, 1], [2, 0.5], [3, 0.33], [4, 0.2]];
+for (const rate of TUNER_RATES) {
+  for (const midi of OPEN_MIDIS) {
+    for (const cents of [-25, 0, 25]) {
+      const hz = AGR.pitch.midiToFrequency(midi) * Math.pow(2, cents / 1200);
+      const label = `tuner detect midi ${midi} at ${cents} cents, rate ${rate}`;
+      expectDetect(`${label} (sine)`, synthWave(hz, rate, [[1, 1]], 0.5), rate, hz, 2);
+      expectDetect(`${label} (mix)`, synthWave(hz, rate, GUITAR_PARTIALS, 0.5), rate, hz, 3);
+    }
+  }
+  // The octave trap: a dominant second harmonic must not read an octave high.
+  for (const midi of [40, 45]) {
+    const hz = AGR.pitch.midiToFrequency(midi);
+    expectDetect(`tuner octave trap midi ${midi}, rate ${rate}`,
+      synthWave(hz, rate, [[1, 0.35], [2, 1], [3, 0.3]], 0.5), rate, hz, 5);
+  }
+  // Silence, noise, and out-of-range sounds must all read as "no pitch".
+  expectNull(`tuner null zeros, rate ${rate}`, new Float32Array(TUNER_BUFFER), rate);
+  expectNull(`tuner null noise, rate ${rate}`, seededNoise(0.3), rate);
+  expectNull(`tuner null 30 hertz, rate ${rate}`, synthWave(30, rate, [[1, 1]], 0.5), rate);
+  expectNull(`tuner null 1500 hertz, rate ${rate}`, synthWave(1500, rate, [[1, 1]], 0.5), rate);
+  expectNull(`tuner null quiet, rate ${rate}`, synthWave(110, rate, [[1, 1]], 0.001), rate);
+}
+
+// Conversion round trips and the shared in-tune threshold.
+{
+  const c = "tuner conversion";
+  if (AGR.pitch.midiToFrequency(69) !== 440) error(c, "MIDI 69 must be 440 hertz");
+  for (let m = 35; m <= 85; m++) {
+    tunerDetectorCases += 1;
+    const p = AGR.pitch.frequencyToPitch(AGR.pitch.midiToFrequency(m));
+    if (p.midi !== m || Math.abs(p.cents) > 0.001) {
+      error(c, `round trip failed for MIDI ${m}: got ${p.midi} at ${p.cents} cents`);
+    }
+  }
+  const sharp = AGR.pitch.frequencyToPitch(440 * Math.pow(2, 25 / 1200));
+  if (sharp.midi !== 69 || Math.abs(sharp.cents - 25) > 0.001) {
+    error(c, "a quarter-semitone sharp A must read MIDI 69 at 25 cents");
+  }
+  if (AGR.pitch.IN_TUNE_CENTS !== 5) {
+    error(c, "IN_TUNE_CENTS must stay 5, matching the renderer's wording");
+  }
+}
+
+// Stability smoother: scripted push sequences with pinned outcomes.
+function runSmoother(pushes) {
+  const smoother = AGR.pitch.createSmoother();
+  return pushes.map((p) => smoother.push(p));
+}
+
+{
+  const c = "tuner smoother";
+  const runTwice = (pushes) => {
+    const a = JSON.stringify(runSmoother(pushes));
+    const b = JSON.stringify(runSmoother(pushes));
+    if (a !== b) error(c, "smoother is not deterministic");
+    tunerGatingChecks += pushes.length;
+    return JSON.parse(a);
+  };
+  const steady = runTwice([
+    { midi: 45, cents: 3 }, { midi: 45, cents: 5 }, { midi: 45, cents: 4 },
+    { midi: 45, cents: 6 }, { midi: 45, cents: 2 }
+  ]);
+  if (steady.slice(0, 4).some((r) => r !== null)) {
+    error(c, "reported stable before the window filled");
+  }
+  if (!steady[4] || steady[4].midi !== 45 || steady[4].cents !== 4) {
+    error(c, `expected the median reading (MIDI 45 at 4 cents), got ${JSON.stringify(steady[4])}`);
+  }
+  const wide = runTwice([
+    { midi: 45, cents: 0 }, { midi: 45, cents: 2 }, { midi: 45, cents: 4 },
+    { midi: 45, cents: 8 }, { midi: 45, cents: 12 }
+  ]);
+  if (wide[4] !== null) error(c, "a 12-cent spread must not count as stable");
+  const mixed = runTwice([
+    { midi: 45, cents: 0 }, { midi: 45, cents: 1 }, { midi: 45, cents: 0 },
+    { midi: 45, cents: 1 }, { midi: 44, cents: 49 }
+  ]);
+  if (mixed[4] !== null) error(c, "a note change must not count as stable");
+  const interrupted = runTwice([
+    { midi: 45, cents: 0 }, { midi: 45, cents: 1 }, { midi: 45, cents: 0 },
+    { midi: 45, cents: 1 }, null, { midi: 45, cents: 0 }, { midi: 45, cents: 1 },
+    { midi: 45, cents: 0 }, { midi: 45, cents: 1 }, { midi: 45, cents: 2 }
+  ]);
+  if (interrupted.slice(0, 9).some((r) => r !== null) || !interrupted[9]) {
+    error(c, "a null push must clear the window; stability needs five fresh readings");
+  }
+}
+
+// Announcement gate: one scripted timeline covering every rule — first
+// announcement, the minimum gap, the unchanged-reading refusal (commit
+// takes the bare reading text, so dropping the name never counts as a
+// change), the faster arriving-in-tune path, a note change that keeps the
+// same bare text yet must still be spoken, silence, and reset.
+{
+  const c = "tuner announcer";
+  const run = () => {
+    const announcer = AGR.pitch.createAnnouncer();
+    const log = [];
+    const step = (reading, now, bareText) => {
+      const offer = announcer.offer(reading, now);
+      if (!offer) {
+        log.push(`${now}:silent`);
+        return;
+      }
+      const spoke = announcer.commit(bareText, now);
+      log.push(`${now}:${spoke ? "spoke" : "held"}:${offer.includeName ? "name" : "bare"}:${bareText}`);
+    };
+    step({ midi: 45, cents: -15 }, 0, "B1");    // first reading announces, with name
+    step({ midi: 45, cents: -14 }, 100, "B1");  // 100 ms gap: silent
+    step({ midi: 45, cents: -12 }, 1600, "B1"); // gate passes, reading unchanged: held
+    step({ midi: 45, cents: -10 }, 1700, "B2"); // gate passes, new reading: spoken, bare
+    step({ midi: 45, cents: 2 }, 2600, "B3");   // 900 ms, but arriving in tune: spoken
+    step({ midi: 45, cents: 1 }, 3300, "B4");   // already in tune, 700 ms: silent
+    step({ midi: 40, cents: -20 }, 5000, "B3"); // same bare text, new note: spoken
+    step(null, 5100, "");                       // silence: silent
+    step({ midi: 40, cents: -20 }, 9000, "B5"); // 4 s since last stable: name again
+    announcer.reset();
+    step({ midi: 40, cents: -20 }, 9100, "B6"); // after reset: like the first
+    return log;
+  };
+  const first = run();
+  const second = run();
+  if (JSON.stringify(first) !== JSON.stringify(second)) {
+    error(c, "announcer is not deterministic");
+  }
+  const expected = [
+    "0:spoke:name:B1",
+    "100:silent",
+    "1600:held:bare:B1",
+    "1700:spoke:bare:B2",
+    "2600:spoke:bare:B3",
+    "3300:silent",
+    "5000:spoke:name:B3",
+    "5100:silent",
+    "9000:spoke:name:B5",
+    "9100:spoke:name:B6"
+  ];
+  if (JSON.stringify(first) !== JSON.stringify(expected)) {
+    error(c, `timeline mismatch: got ${JSON.stringify(first)}`);
+  }
+  tunerGatingChecks += expected.length;
+}
+
+// Tuner phrases: every reading the renderer can produce, linted like all
+// other generated text, plus byte-for-byte goldens for the canonical forms.
+{
+  const TUNER_CENTS = [-40, -15, -6, -5, 0, 5, 6, 15, 40];
+  const TUNER_MIDIS = [...OPEN_MIDIS, 42, 61]; // plus F sharp 2 and C sharp 4
+  for (const naming of NAMINGS) {
+    for (const midi of TUNER_MIDIS) {
+      for (const cents of TUNER_CENTS) {
+        for (const includeName of [true, false]) {
+          const context = `tuner phrase midi ${midi} cents ${cents} [${naming}${includeName ? "/name" : ""}]`;
+          let first;
+          let second;
+          try {
+            first = AGR.render.tunerReading({ midi, cents }, naming, includeName);
+            second = AGR.render.tunerReading({ midi, cents }, naming, includeName);
+          } catch (e) {
+            error(context, `renderer threw: ${e.message}`);
+            continue;
+          }
+          tunerPhraseTexts += 1;
+          if (first !== second) error(context, "output is not deterministic");
+          if (typeof first !== "string" || first.length === 0) {
+            error(context, "empty phrase");
+            continue;
+          }
+          if (!first.endsWith(".")) error(context, `phrase must end with a period: "${first}"`);
+          if (BANNED_GLYPHS.test(first)) error(context, `banned symbol in: "${first}"`);
+          if (BANNED_WORDS.test(first)) error(context, `banned direction word in: "${first}"`);
+          const inTune = Math.abs(cents) <= 5;
+          if (inTune !== first.includes("In tune.")) {
+            error(context, `wrong verdict for ${cents} cents: "${first}"`);
+          }
+          if (!inTune) {
+            const wantLow = cents < 0;
+            const hasLow = first.includes("too low. Tune higher.");
+            const hasHigh = first.includes("too high. Tune lower.");
+            if (!first.includes("About ") || hasLow !== wantLow || hasHigh === wantLow) {
+              error(context, `wrong side for ${cents} cents: "${first}"`);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  const golden = (reading, naming, includeName, want) => {
+    const got = AGR.render.tunerReading(reading, naming, includeName);
+    if (got !== want) error("tuner golden", `expected "${want}", got "${got}"`);
+  };
+  golden({ midi: 40, cents: -15 }, "both", true, "6th string (low E). About 15 cents too low. Tune higher.");
+  golden({ midi: 40, cents: -15 }, "both", false, "About 15 cents too low. Tune higher.");
+  golden({ midi: 45, cents: 4 }, "both", true, "5th string (A). In tune.");
+  golden({ midi: 42, cents: 12 }, "both", true, "Closest note is F sharp or G flat. About 10 cents too high. Tune lower.");
+  golden({ midi: 64, cents: -30 }, "number", true, "1st string. About 30 cents too low. Tune higher.");
+  golden({ midi: 59, cents: 0 }, "name", true, "B string. In tune.");
+  golden({ midi: 40, cents: 0 }, "name", true, "Low E string. In tune.");
+  golden({ midi: 45, cents: 6 }, "both", false, "About 5 cents too high. Tune lower.");
+
+  const stateKeys = AGR.render.tunerStateKeys;
+  const wantKeys = ["idle", "starting", "listening", "stopped", "insecure",
+    "unsupported", "denied", "denied-file", "no-mic", "busy", "error"];
+  if (JSON.stringify([...stateKeys].sort()) !== JSON.stringify([...wantKeys].sort())) {
+    error("tuner states", `state keys are ${JSON.stringify(stateKeys)}`);
+  }
+  for (const key of stateKeys) {
+    const context = `tuner state ${key}`;
+    let first;
+    let second;
+    try {
+      first = AGR.render.tunerStateText(key);
+      second = AGR.render.tunerStateText(key);
+    } catch (e) {
+      error(context, `renderer threw: ${e.message}`);
+      continue;
+    }
+    tunerPhraseTexts += 1;
+    if (first !== second) error(context, "output is not deterministic");
+    if (typeof first !== "string" || first.length === 0) {
+      error(context, "empty phrase");
+      continue;
+    }
+    if (!first.endsWith(".")) error(context, `phrase must end with a period: "${first}"`);
+    if (BANNED_GLYPHS.test(first)) error(context, `banned symbol in: "${first}"`);
+    if (BANNED_WORDS.test(first)) error(context, `banned direction word in: "${first}"`);
+  }
+  if (AGR.render.tunerStateText("listening") !==
+      "Listening. Play one string at a time, and let it ring.") {
+    error("tuner golden", "the listening phrase changed");
+  }
+  if (AGR.render.tunerStateText("denied") !==
+      "Microphone permission was refused, so the tuner cannot hear the guitar. " +
+      "Allow microphone access for this site in the browser, then press Start tuner again.") {
+    error("tuner golden", "the denied phrase changed");
+  }
+}
+
 // ---------- Summary ----------
 
 const exampleCount = shapes.reduce((n, s) => n + s.examples.length, 0);
 console.log("");
 console.log(`Checked ${fixedChords.length} chords, ${shapes.length} movable shapes, ${exampleCount} shape examples, and ${sweepCount} all-roots sweep positions.`);
+console.log(`Tuner: ${tunerDetectorCases} detection cases, ${tunerGatingChecks} gating steps, and ${tunerPhraseTexts} phrase texts checked.`);
 console.log(`${errors} error(s), ${warnings} warning(s).`);
 if (errors > 0) {
   process.exitCode = 1;

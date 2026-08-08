@@ -329,6 +329,117 @@
     });
   }
 
+  // --- Tuner page ---
+
+  function initTuner() {
+    var supportP = document.getElementById("tuner-support");
+    var readingP = document.getElementById("tuner-reading");
+    var statusP = document.getElementById("tuner-status");
+    var startButton = document.getElementById("tuner-start");
+    var muteButton = document.getElementById("tuner-mute");
+    var selftest = /[?&]selftest/.test(location.search);
+    var muted = false;
+    var tunerOn = false;
+    var lastStableAt = 0;
+    var announcer = AGR.pitch.createAnnouncer();
+
+    function stateText(state) {
+      return AGR.render.tunerStateText(state);
+    }
+
+    // The one sanctioned automatic announcement channel besides the settings
+    // confirmation (CLAUDE.md rule 2). Everything written here either passed
+    // the announcer's gates or confirms the user's own button press.
+    function announce(text) {
+      if (muted || document.hidden) return;
+      statusP.textContent = text;
+    }
+
+    if (!AGR.tuner.isSupported(selftest)) {
+      supportP.textContent = stateText("unsupported");
+      return;
+    }
+    if (!selftest && !AGR.tuner.isSecure()) {
+      supportP.textContent = stateText("insecure");
+      return;
+    }
+    supportP.textContent = stateText("idle");
+    startButton.disabled = false;
+    muteButton.disabled = false;
+
+    function onTick(stable, raw) {
+      var now = Date.now();
+      if (stable) {
+        lastStableAt = now;
+        // The plain reading always carries the note name, for on-demand
+        // reading; only the announcement may drop it.
+        readingP.textContent = AGR.render.tunerReading(stable, settings.stringNaming, true);
+        if (muted || document.hidden) return;
+        var offer = announcer.offer(stable, now);
+        if (!offer) return;
+        // The gate compares the bare reading, so that dropping the name
+        // sentence never makes an unchanged reading sound new.
+        var bare = AGR.render.tunerReading(stable, settings.stringNaming, false);
+        if (announcer.commit(bare, now)) {
+          statusP.textContent = offer.includeName
+            ? AGR.render.tunerReading(stable, settings.stringNaming, true)
+            : bare;
+        }
+      } else if (tunerOn && now - lastStableAt > 2000) {
+        readingP.textContent = stateText("listening");
+      }
+    }
+
+    startButton.addEventListener("click", function () {
+      if (AGR.tuner.running()) {
+        AGR.tuner.stop();
+        return;
+      }
+      startButton.disabled = true;
+      supportP.textContent = stateText("starting");
+      AGR.tuner.start({
+        onStarted: function () {
+          tunerOn = true;
+          lastStableAt = Date.now();
+          startButton.disabled = false;
+          startButton.textContent = "Stop tuner";
+          supportP.textContent = stateText("listening");
+          announce(stateText("listening"));
+        },
+        onStopped: function () {
+          tunerOn = false;
+          announcer.reset();
+          startButton.disabled = false;
+          startButton.textContent = "Start tuner";
+          supportP.textContent = stateText("stopped");
+          readingP.textContent = "";
+          announce(stateText("stopped"));
+        },
+        onError: function (kind) {
+          tunerOn = false;
+          startButton.disabled = false;
+          startButton.textContent = "Start tuner";
+          supportP.textContent = stateText(kind);
+          announce(stateText(kind));
+        },
+        onTick: onTick
+      }, { selftest: selftest });
+    });
+
+    muteButton.addEventListener("click", function () {
+      muted = !muted;
+      muteButton.setAttribute("aria-pressed", muted ? "true" : "false");
+      // No confirmation announcement: the button's own pressed state is the
+      // feedback, and muting must go quiet immediately.
+      if (muted) statusP.textContent = "";
+    });
+
+    // Leaving the page must release the microphone (and its indicator).
+    window.addEventListener("pagehide", function () {
+      AGR.tuner.stop();
+    });
+  }
+
   var registry = {
     "open-chords": renderOpenChords,
     "power-chords": renderPowerChords,
@@ -336,7 +447,8 @@
     "triads": renderTriads,
     "chord-finder": initChordFinder,
     "fretboard": renderFretboard,
-    "settings": initSettingsPage
+    "settings": initSettingsPage,
+    "tuner": initTuner
   };
 
   if (registry[category]) registry[category]();

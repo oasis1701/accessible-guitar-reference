@@ -172,6 +172,27 @@ select {
   border-radius: 0.35rem;
 }
 
+button {
+  font: inherit;
+  font-weight: bold;
+  padding: 0.35rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 0.35rem;
+  background: var(--bg);
+  color: var(--accent);
+  margin-right: 0.75rem;
+}
+
+/* The pressed state lives in aria-pressed; the fill only mirrors it. */
+button[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+button:disabled {
+  color: var(--muted);
+}
+
 #finder-form label {
   font-weight: bold;
   margin-right: 0.5rem;

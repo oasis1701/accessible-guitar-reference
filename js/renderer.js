@@ -402,6 +402,69 @@ globalThis.AGR = globalThis.AGR || {};
     });
   }
 
+  // --- Tuner text ---
+
+  // Which open string sounds this exact MIDI note, if any.
+  function openStringForMidi(midi) {
+    var strings = Object.keys(AGR.tuning.stringMidi);
+    for (var i = 0; i < strings.length; i++) {
+      if (AGR.tuning.stringMidi[strings[i]] === midi) return Number(strings[i]);
+    }
+    return null;
+  }
+
+  // Anything within this many cents of the note reads as in tune. Must match
+  // IN_TUNE_CENTS in js/pitch.js; the validator pins both sides.
+  var IN_TUNE_CENTS = 5;
+
+  // One tuner reading as a sentence or two. reading is {midi, cents} with
+  // cents signed and unrounded; naming is the stringNaming setting. The name
+  // sentence names the open string when the note is one, otherwise the
+  // nearest note by pitch class (never an octave number), and is dropped
+  // when includeName is false because the note has not changed.
+  function tunerReading(reading, naming, includeName) {
+    if (!reading || !isFinite(reading.midi) || !isFinite(reading.cents)) {
+      throw new Error("tunerReading needs a reading with midi and cents");
+    }
+    var verdict;
+    if (Math.abs(reading.cents) <= IN_TUNE_CENTS) {
+      verdict = "In tune.";
+    } else {
+      var rounded = Math.round(Math.abs(reading.cents) / 5) * 5;
+      verdict = reading.cents < 0
+        ? "About " + rounded + " cents too low. Tune higher."
+        : "About " + rounded + " cents too high. Tune lower.";
+    }
+    if (!includeName) return verdict;
+    var stringNumber = openStringForMidi(reading.midi);
+    var name = stringNumber
+      ? capitalize(stringLabel(stringNumber, naming))
+      : "Closest note is " + noteNamesForPc(((reading.midi % 12) + 12) % 12);
+    return name + ". " + verdict;
+  }
+
+  // Fixed tuner status phrases, one per state js/page.js can be in. Kept
+  // here so the validator lints them with everything else.
+  var TUNER_STATE_TEXT = {
+    "idle": "The tuner is not running. Use the Start tuner button to begin.",
+    "starting": "Requesting microphone access. If the browser asks for permission, choose Allow.",
+    "listening": "Listening. Play one string at a time, and let it ring.",
+    "stopped": "The tuner is stopped and the microphone is off.",
+    "insecure": "This page cannot reach the microphone here. Browsers only allow microphone access over a secure https connection, so use the tuner on the live site.",
+    "unsupported": "This browser does not support the audio features the tuner needs. Please use a current version of Firefox, Chrome, or Edge.",
+    "denied": "Microphone permission was refused, so the tuner cannot hear the guitar. Allow microphone access for this site in the browser, then press Start tuner again.",
+    "denied-file": "The browser refused microphone access, which is common for pages opened straight from disk. Use the tuner on the live site, or allow microphone access and press Start tuner again.",
+    "no-mic": "No microphone was found. Connect or enable a microphone, then press Start tuner again.",
+    "busy": "The microphone could not be started. Another program may be using it. Close that program, then press Start tuner again.",
+    "error": "Something went wrong while starting the tuner. Reload the page and press Start tuner again."
+  };
+
+  function tunerStateText(state) {
+    var text = TUNER_STATE_TEXT[state];
+    if (!text) throw new Error("No tuner text for state: " + state);
+    return text;
+  }
+
   AGR.render = {
     describeChord: describeChord,
     describeShapeRelative: describeShapeRelative,
@@ -412,6 +475,10 @@ globalThis.AGR = globalThis.AGR || {};
     slugNote: slugNote,
     stringLabel: stringLabel,
     ordinal: ordinal,
-    displayNote: displayNote
+    displayNote: displayNote,
+    noteNamesForPc: noteNamesForPc,
+    tunerReading: tunerReading,
+    tunerStateText: tunerStateText,
+    tunerStateKeys: Object.keys(TUNER_STATE_TEXT)
   };
 })();
