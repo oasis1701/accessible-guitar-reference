@@ -4,7 +4,7 @@ A text-first guitar reference for blind and visually impaired players.
 
 Chord charts, fretboard diagrams, and video lessons assume you can see them. This site assumes you cannot. Every chord, power chord, and triad is described in precise, consistent language designed for screen readers: which string, which fret, which finger — phrased the same way every time.
 
-**Live site:** https://oasis1701.github.io/accessible-guitar-reference/
+**Live site:** https://accessibleguitar.com/
 
 ## What's inside
 

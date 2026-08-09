@@ -2,7 +2,7 @@
 
 ## What this is
 
-Accessible Guitar Reference: a text-first guitar reference website for blind and visually impaired players. Live at https://oasis1701.github.io/accessible-guitar-reference/. The maintainer is blind and reviews everything with a screen reader; their screen-reader pass is the final gate for any user-facing change.
+Accessible Guitar Reference: a text-first guitar reference website for blind and visually impaired players. Live at https://accessibleguitar.com/ (the old https://oasis1701.github.io/accessible-guitar-reference/ address redirects there). The maintainer is blind and reviews everything with a screen reader; their screen-reader pass is the final gate for any user-facing change.
 
 ## Hard rules — breaking these breaks the product
 
