@@ -404,25 +404,17 @@ globalThis.AGR = globalThis.AGR || {};
 
   // --- Tuner text ---
 
-  // Which open string sounds this exact MIDI note, if any.
-  function openStringForMidi(midi) {
-    var strings = Object.keys(AGR.tuning.stringMidi);
-    for (var i = 0; i < strings.length; i++) {
-      if (AGR.tuning.stringMidi[strings[i]] === midi) return Number(strings[i]);
-    }
-    return null;
-  }
-
   // Anything within this many cents of the note reads as in tune. Must match
   // IN_TUNE_CENTS in js/pitch.js; the validator pins both sides.
   var IN_TUNE_CENTS = 5;
 
   // One tuner reading as a sentence or two. reading is {midi, cents} with
-  // cents signed and unrounded; naming is the stringNaming setting. The name
-  // sentence names the open string when the note is one, otherwise the
-  // nearest note by pitch class (never an octave number), and is dropped
-  // when includeName is false because the note has not changed.
-  function tunerReading(reading, naming, includeName) {
+  // cents signed and unrounded. The name sentence gives the nearest note by
+  // pitch class, never a string identity and never an octave number, so
+  // every E on the neck reads simply as E; it is dropped when includeName
+  // is false because the note has not changed. The verdict always steers
+  // toward that nearest note.
+  function tunerReading(reading, includeName) {
     if (!reading || !isFinite(reading.midi) || !isFinite(reading.cents)) {
       throw new Error("tunerReading needs a reading with midi and cents");
     }
@@ -436,11 +428,7 @@ globalThis.AGR = globalThis.AGR || {};
         : "About " + rounded + " cents too high. Tune lower.";
     }
     if (!includeName) return verdict;
-    var stringNumber = openStringForMidi(reading.midi);
-    var name = stringNumber
-      ? capitalize(stringLabel(stringNumber, naming))
-      : "Closest note is " + noteNamesForPc(((reading.midi % 12) + 12) % 12);
-    return name + ". " + verdict;
+    return noteNamesForPc(((reading.midi % 12) + 12) % 12) + ". " + verdict;
   }
 
   // Fixed tuner status phrases, one per state js/page.js can be in. Kept

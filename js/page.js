@@ -379,16 +379,16 @@
         lastStableAt = now;
         // The plain reading always carries the note name, for on-demand
         // reading; only the announcement may drop it.
-        readingP.textContent = AGR.render.tunerReading(stable, settings.stringNaming, true);
+        readingP.textContent = AGR.render.tunerReading(stable, true);
         if (muted || document.hidden) return;
         var offer = announcer.offer(stable, now);
         if (!offer) return;
         // The gate compares the bare reading, so that dropping the name
         // sentence never makes an unchanged reading sound new.
-        var bare = AGR.render.tunerReading(stable, settings.stringNaming, false);
+        var bare = AGR.render.tunerReading(stable, false);
         if (announcer.commit(bare, now)) {
           statusP.textContent = offer.includeName
-            ? AGR.render.tunerReading(stable, settings.stringNaming, true)
+            ? AGR.render.tunerReading(stable, true)
             : bare;
         }
         return;

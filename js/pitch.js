@@ -165,10 +165,14 @@ globalThis.AGR = globalThis.AGR || {};
     return hz;
   }
 
-  // Stability smoother: the tuner reports nothing until the same note has
-  // held for the whole window with only a small wobble. Push one detection
-  // (a {midi, cents} reading or null) per poll; get back the stable reading
-  // (median cents) or null. Any null push clears the window.
+  // Stability smoother: the tuner reports nothing until the pitch has held
+  // for the whole window with only a small wobble. Push one detection (a
+  // {midi, cents} reading or null) per poll; get back the stable reading or
+  // null. Readings are compared in continuous semitone space (midi plus
+  // cents together), so a pitch sitting near the halfway point between two
+  // notes, where rounding makes the integer midi flip back and forth, still
+  // counts as steady; the result is the median reading by that continuous
+  // value. Any null push clears the window.
   function createSmoother() {
     var recent = [];
     return {
@@ -177,18 +181,21 @@ globalThis.AGR = globalThis.AGR || {};
           recent = [];
           return null;
         }
-        recent.push({ midi: reading.midi, cents: reading.cents });
+        recent.push({
+          midi: reading.midi,
+          cents: reading.cents,
+          value: reading.midi + reading.cents / 100
+        });
         if (recent.length > SMOOTH_WINDOW) recent.shift();
         if (recent.length < SMOOTH_WINDOW) return null;
-        var midi = recent[0].midi;
-        var cents = [];
-        for (var i = 0; i < recent.length; i++) {
-          if (recent[i].midi !== midi) return null;
-          cents.push(recent[i].cents);
+        var sorted = recent.slice().sort(function (a, b) {
+          return a.value - b.value;
+        });
+        if ((sorted[sorted.length - 1].value - sorted[0].value) * 100 > SPREAD_CENTS) {
+          return null;
         }
-        cents.sort(function (a, b) { return a - b; });
-        if (cents[cents.length - 1] - cents[0] > SPREAD_CENTS) return null;
-        return { midi: midi, cents: cents[Math.floor(cents.length / 2)] };
+        var median = sorted[Math.floor(sorted.length / 2)];
+        return { midi: median.midi, cents: median.cents };
       },
       reset: function () {
         recent = [];

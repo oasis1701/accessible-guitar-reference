@@ -27,7 +27,7 @@
 </header>
 <main id="main">
   <h1>Tuner</h1>
-  <p>This page listens through your microphone and describes what it hears in plain words: which note a string sounds, and how far it is from true. Pluck one string, let it ring, and the tuner speaks a short reading, for example: 6th string (low E). About 15 cents too low. Tune higher. Readings use A at 440 hertz, and anything within five cents counts as in tune.</p>
+  <p>This page listens through your microphone and describes what it hears in plain words: the name of the closest note, and how far the sound is from that note. Pluck one string, let it ring, and the tuner speaks a short reading, for example: E. About 15 cents too low. Tune higher. Readings use A at 440 hertz, and anything within five cents counts as in tune.</p>
   <p>The tuner speaks only when a note has settled and the reading has changed, stays silent while nothing is playing, and never says the same thing twice in a row. The Mute announcements button stops all automatic speech; the current reading then stays available as plain text in the tuner section, for you to read whenever you choose.</p>
   <noscript><p>The tuner needs JavaScript to hear and describe your strings. Please allow JavaScript for this site; it loads no external code.</p></noscript>
 
@@ -54,9 +54,9 @@
   <p role="status" id="tuner-status"></p>
 
   <h2>How the readings work</h2>
-  <p>A full reading names the string, then gives the verdict, for example: 6th string (low E). About 20 cents too low. Tune higher. Too low means the pitch must come higher; too high means it must come lower. A cent is one hundredth of a semitone, readings round to the nearest five cents, and within five cents the tuner simply says: In tune.</p>
-  <p>The note name is spoken when it changes and skipped while you keep working on the same string, so a session sounds like: 6th string (low E). About 20 cents too low. Tune higher. Then: About 10 cents too low. Tune higher. Then: In tune. After a few seconds of silence the name returns with the next reading, so you always know where you are.</p>
-  <p>The tuner always names whichever note is closest to what it hears. The two E strings are told apart as low E and high E. A sound that is not an open string is named by its letter, with both names where two exist, for example: Closest note is F sharp or G flat. If the tuner names a note you did not expect, your string is more than half a semitone from its target; follow the verdicts and the expected name will arrive. String names follow your choice on the <a href="settings.html">Settings</a> page, so 6th string (low E) can also read as 6th string, or as low E string.</p>
+  <p>A full reading names the closest note, then gives the verdict, for example: E. About 20 cents too low. Tune higher. Too low means the pitch must come higher; too high means it must come lower. A cent is one hundredth of a semitone, readings round to the nearest five cents, and within five cents the tuner simply says: In tune.</p>
+  <p>The note name is spoken when it changes and skipped while you keep working on the same string, so a session sounds like: E. About 20 cents too low. Tune higher. Then: About 10 cents too low. Tune higher. Then: In tune. After a few seconds of silence the name returns with the next reading, so you always know where you are.</p>
+  <p>The tuner does not try to work out which string you played; it names whichever note sits closest to the pitch it hears. Every E on the guitar, from the thickest string to the thinnest, reads simply as E, and a note with two names is given both, for example: F sharp or G flat. The verdicts always steer toward that closest note, not toward the note you are aiming for. So if the tuner names a note lower than the one you want, keep tuning higher until the name you expect arrives; if it names a note higher than your target, keep tuning lower. Once the right name appears, follow the verdicts to: In tune. The string naming choice on the <a href="settings.html">Settings</a> page shapes chord and fretboard descriptions; tuner readings name notes the same way for everyone.</p>
 </main>
 <footer>
   <p>Accessible Guitar Reference — text-first guitar guides for blind and visually impaired players.</p>

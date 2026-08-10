@@ -383,8 +383,10 @@ for (let s = 6; s >= 1; s--) {
 // ---------- Phase F: tuner ----------
 // The tuner page's engine is pure (js/pitch.js) and its words come from the
 // renderer, so both are proven here: pitch detection on synthesized
-// waveforms, the stability and announcement gates on scripted timelines,
-// and (further below) every phrase linted like all other generated text.
+// waveforms across the full chromatic range (the tuner names the nearest
+// note, never a string), the stability and announcement gates on scripted
+// timelines, and (further below) every phrase linted like all other
+// generated text.
 
 let tunerDetectorCases = 0;
 let tunerGatingChecks = 0;
@@ -447,16 +449,23 @@ function expectNull(context, wave, rate) {
   if (got !== null) error(context, `expected null, got ${got.toFixed(2)} hertz`);
 }
 
-// Detection: every open string, in tune and 25 cents to either side, as a
-// pure sine and as a guitar-like mix of harmonics, at both common rates.
+// Detection: every note from the open low E up to G sharp 4 (MIDI 40 to 68),
+// in tune and 25 cents to either side, as a pure sine at both common rates.
+// The tuner names the nearest note, not a string, so fretted notes such as
+// F must detect as cleanly as open strings (regression for the misread-F
+// report, 2026-08-10). The open strings and all three F notes among them
+// also run as a guitar-like mix of harmonics.
 const GUITAR_PARTIALS = [[1, 1], [2, 0.5], [3, 0.33], [4, 0.2]];
+const MIX_MIDIS = [...OPEN_MIDIS, 41, 53, 65];
 for (const rate of TUNER_RATES) {
-  for (const midi of OPEN_MIDIS) {
+  for (let midi = 40; midi <= 68; midi++) {
     for (const cents of [-25, 0, 25]) {
       const hz = AGR.pitch.midiToFrequency(midi) * Math.pow(2, cents / 1200);
       const label = `tuner detect midi ${midi} at ${cents} cents, rate ${rate}`;
       expectDetect(`${label} (sine)`, synthWave(hz, rate, [[1, 1]], 0.5), rate, hz, 2);
-      expectDetect(`${label} (mix)`, synthWave(hz, rate, GUITAR_PARTIALS, 0.5), rate, hz, 3);
+      if (MIX_MIDIS.includes(midi)) {
+        expectDetect(`${label} (mix)`, synthWave(hz, rate, GUITAR_PARTIALS, 0.5), rate, hz, 3);
+      }
     }
   }
   // The octave trap: a dominant second harmonic must not read an octave high.
@@ -494,6 +503,23 @@ for (const rate of TUNER_RATES) {
   if (sharp.midi !== 69 || Math.abs(sharp.cents - 25) > 0.001) {
     error(c, "a quarter-semitone sharp A must read MIDI 69 at 25 cents");
   }
+  // Boundary behavior: conversion is chromatic and always rounds to the
+  // nearest note, so the tuner guides toward whichever note is closest.
+  // 60 cents flat of F2 is 40 cents sharp of E2 and must read as E; just
+  // past the halfway point it must flip to F.
+  const flatF = AGR.pitch.frequencyToPitch(AGR.pitch.midiToFrequency(41) * Math.pow(2, -60 / 1200));
+  if (flatF.midi !== 40 || Math.abs(flatF.cents - 40) > 0.001) {
+    error(c, `60 cents flat of F2 must read MIDI 40 at 40 cents, got ${flatF.midi} at ${flatF.cents}`);
+  }
+  const nearlyF = AGR.pitch.frequencyToPitch(AGR.pitch.midiToFrequency(40) * Math.pow(2, 49 / 1200));
+  if (nearlyF.midi !== 40 || Math.abs(nearlyF.cents - 49) > 0.001) {
+    error(c, `49 cents sharp of E2 must still read MIDI 40, got ${nearlyF.midi} at ${nearlyF.cents}`);
+  }
+  const justF = AGR.pitch.frequencyToPitch(AGR.pitch.midiToFrequency(40) * Math.pow(2, 51 / 1200));
+  if (justF.midi !== 41 || Math.abs(justF.cents + 49) > 0.001) {
+    error(c, `51 cents sharp of E2 must read MIDI 41 at minus 49 cents, got ${justF.midi} at ${justF.cents}`);
+  }
+  tunerDetectorCases += 3;
   if (AGR.pitch.IN_TUNE_CENTS !== 5) {
     error(c, "IN_TUNE_CENTS must stay 5, matching the renderer's wording");
   }
@@ -540,7 +566,7 @@ function runSmoother(pushes) {
     { midi: 45, cents: 0 }, { midi: 45, cents: 1 }, { midi: 45, cents: 0 },
     { midi: 45, cents: 1 }, { midi: 44, cents: 49 }
   ]);
-  if (mixed[4] !== null) error(c, "a note change must not count as stable");
+  if (mixed[4] !== null) error(c, "a pitch jump must not count as stable");
   const interrupted = runTwice([
     { midi: 45, cents: 0 }, { midi: 45, cents: 1 }, { midi: 45, cents: 0 },
     { midi: 45, cents: 1 }, null, { midi: 45, cents: 0 }, { midi: 45, cents: 1 },
@@ -548,6 +574,29 @@ function runSmoother(pushes) {
   ]);
   if (interrupted.slice(0, 9).some((r) => r !== null) || !interrupted[9]) {
     error(c, "a null push must clear the window; stability needs five fresh readings");
+  }
+  // Regression for the misread-F report (2026-08-10): a pitch holding near
+  // the halfway point between two notes makes rounding alternate between
+  // MIDI 40 and 41. The smoother compares readings in continuous semitone
+  // space, so this still counts as steady and must emit a reading; the old
+  // same-integer-midi rule reported nothing here forever while the page
+  // kept showing a stale reading.
+  const boundary = runTwice([
+    { midi: 40, cents: 49 }, { midi: 41, cents: -49 }, { midi: 40, cents: 48 },
+    { midi: 41, cents: -48 }, { midi: 41, cents: -49 }
+  ]);
+  if (boundary.slice(0, 4).some((r) => r !== null)) {
+    error(c, "boundary: reported stable before the window filled");
+  }
+  if (!boundary[4] || boundary[4].midi !== 41 || boundary[4].cents !== -49) {
+    error(c, `a boundary hover must emit its median reading (MIDI 41 at minus 49 cents), got ${JSON.stringify(boundary[4])}`);
+  }
+  const boundaryLow = runTwice([
+    { midi: 40, cents: 49 }, { midi: 40, cents: 48 }, { midi: 41, cents: -49 },
+    { midi: 40, cents: 47 }, { midi: 41, cents: -48 }
+  ]);
+  if (!boundaryLow[4] || boundaryLow[4].midi !== 40 || boundaryLow[4].cents !== 49) {
+    error(c, `a boundary hover with the median on the low side must emit MIDI 40 at 49 cents, got ${JSON.stringify(boundaryLow[4])}`);
   }
 }
 
@@ -610,59 +659,85 @@ function runSmoother(pushes) {
 // other generated text, plus byte-for-byte goldens for the canonical forms.
 {
   const TUNER_CENTS = [-40, -15, -6, -5, 0, 5, 6, 15, 40];
-  const TUNER_MIDIS = [...OPEN_MIDIS, 42, 61]; // plus F sharp 2 and C sharp 4
-  for (const naming of NAMINGS) {
-    for (const midi of TUNER_MIDIS) {
-      for (const cents of TUNER_CENTS) {
-        for (const includeName of [true, false]) {
-          const context = `tuner phrase midi ${midi} cents ${cents} [${naming}${includeName ? "/name" : ""}]`;
-          let first;
-          let second;
-          try {
-            first = AGR.render.tunerReading({ midi, cents }, naming, includeName);
-            second = AGR.render.tunerReading({ midi, cents }, naming, includeName);
-          } catch (e) {
-            error(context, `renderer threw: ${e.message}`);
-            continue;
+  // The six open strings; the naturals one semitone outside both E strings
+  // (MIDI 39, 41, 63, 65 — the misread-F report lives there); the E an
+  // octave above the open low E; and both double-named accidentals
+  // (F sharp 2 and C sharp 4).
+  const TUNER_MIDIS = [...OPEN_MIDIS, 39, 41, 52, 63, 65, 42, 61];
+  // A reading names a note, never a string: no string talk, no low or high
+  // E, no ordinals. State texts are exempt ("Play one string at a time" is
+  // approved copy); this pattern guards the readings only.
+  const BANNED_TUNER_WORDS = /string|\blow E\b|\bhigh E\b|\b\d+(st|nd|rd|th)\b/i;
+  for (const midi of TUNER_MIDIS) {
+    for (const cents of TUNER_CENTS) {
+      for (const includeName of [true, false]) {
+        const context = `tuner phrase midi ${midi} cents ${cents}${includeName ? " [name]" : ""}`;
+        let first;
+        let second;
+        try {
+          first = AGR.render.tunerReading({ midi, cents }, includeName);
+          second = AGR.render.tunerReading({ midi, cents }, includeName);
+        } catch (e) {
+          error(context, `renderer threw: ${e.message}`);
+          continue;
+        }
+        tunerPhraseTexts += 1;
+        if (first !== second) error(context, "output is not deterministic");
+        if (typeof first !== "string" || first.length === 0) {
+          error(context, "empty phrase");
+          continue;
+        }
+        if (!first.endsWith(".")) error(context, `phrase must end with a period: "${first}"`);
+        if (BANNED_GLYPHS.test(first)) error(context, `banned symbol in: "${first}"`);
+        if (BANNED_WORDS.test(first)) error(context, `banned direction word in: "${first}"`);
+        if (BANNED_TUNER_WORDS.test(first)) {
+          error(context, `a reading must name a note, never a string: "${first}"`);
+        }
+        if (includeName) {
+          // The named form is exactly the note name sentence plus the bare
+          // verdict; the announcer relies on that structure to compare
+          // readings without the name.
+          const bare = AGR.render.tunerReading({ midi, cents }, false);
+          const name = AGR.render.noteNamesForPc(((midi % 12) + 12) % 12);
+          if (first !== `${name}. ${bare}`) {
+            error(context, `a named reading must be the note name plus the bare reading: "${first}"`);
           }
-          tunerPhraseTexts += 1;
-          if (first !== second) error(context, "output is not deterministic");
-          if (typeof first !== "string" || first.length === 0) {
-            error(context, "empty phrase");
-            continue;
-          }
-          if (!first.endsWith(".")) error(context, `phrase must end with a period: "${first}"`);
-          if (BANNED_GLYPHS.test(first)) error(context, `banned symbol in: "${first}"`);
-          if (BANNED_WORDS.test(first)) error(context, `banned direction word in: "${first}"`);
-          const inTune = Math.abs(cents) <= 5;
-          if (inTune !== first.includes("In tune.")) {
-            error(context, `wrong verdict for ${cents} cents: "${first}"`);
-          }
-          if (!inTune) {
-            const wantLow = cents < 0;
-            const hasLow = first.includes("too low. Tune higher.");
-            const hasHigh = first.includes("too high. Tune lower.");
-            if (!first.includes("About ") || hasLow !== wantLow || hasHigh === wantLow) {
-              error(context, `wrong side for ${cents} cents: "${first}"`);
-            }
+        }
+        const inTune = Math.abs(cents) <= 5;
+        if (inTune !== first.includes("In tune.")) {
+          error(context, `wrong verdict for ${cents} cents: "${first}"`);
+        }
+        if (!inTune) {
+          const wantLow = cents < 0;
+          const hasLow = first.includes("too low. Tune higher.");
+          const hasHigh = first.includes("too high. Tune lower.");
+          if (!first.includes("About ") || hasLow !== wantLow || hasHigh === wantLow) {
+            error(context, `wrong side for ${cents} cents: "${first}"`);
           }
         }
       }
     }
   }
 
-  const golden = (reading, naming, includeName, want) => {
-    const got = AGR.render.tunerReading(reading, naming, includeName);
+  const golden = (reading, includeName, want) => {
+    const got = AGR.render.tunerReading(reading, includeName);
     if (got !== want) error("tuner golden", `expected "${want}", got "${got}"`);
   };
-  golden({ midi: 40, cents: -15 }, "both", true, "6th string (low E). About 15 cents too low. Tune higher.");
-  golden({ midi: 40, cents: -15 }, "both", false, "About 15 cents too low. Tune higher.");
-  golden({ midi: 45, cents: 4 }, "both", true, "5th string (A). In tune.");
-  golden({ midi: 42, cents: 12 }, "both", true, "Closest note is F sharp or G flat. About 10 cents too high. Tune lower.");
-  golden({ midi: 64, cents: -30 }, "number", true, "1st string. About 30 cents too low. Tune higher.");
-  golden({ midi: 59, cents: 0 }, "name", true, "B string. In tune.");
-  golden({ midi: 40, cents: 0 }, "name", true, "Low E string. In tune.");
-  golden({ midi: 45, cents: 6 }, "both", false, "About 5 cents too high. Tune lower.");
+  // All three E octaves on the neck — the open low E, the E at the 2nd fret
+  // of the D string, and the open high E — must read identically: the tuner
+  // names notes, never strings and never octaves.
+  golden({ midi: 40, cents: -15 }, true, "E. About 15 cents too low. Tune higher.");
+  golden({ midi: 52, cents: -15 }, true, "E. About 15 cents too low. Tune higher.");
+  golden({ midi: 64, cents: -15 }, true, "E. About 15 cents too low. Tune higher.");
+  // The misread-F report (2026-08-10): an F must read as F, wherever it is
+  // played, and even a far-flat F is guided toward the note it is now
+  // closest to.
+  golden({ midi: 41, cents: 0 }, true, "F. In tune.");
+  golden({ midi: 41, cents: -49 }, true, "F. About 50 cents too low. Tune higher.");
+  golden({ midi: 42, cents: 12 }, true, "F sharp or G flat. About 10 cents too high. Tune lower.");
+  golden({ midi: 45, cents: 4 }, true, "A. In tune.");
+  golden({ midi: 40, cents: -15 }, false, "About 15 cents too low. Tune higher.");
+  golden({ midi: 45, cents: 6 }, false, "About 5 cents too high. Tune lower.");
 
   const stateKeys = AGR.render.tunerStateKeys;
   const wantKeys = ["idle", "starting", "listening", "no-signal", "unclear",

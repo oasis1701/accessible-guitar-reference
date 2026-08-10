@@ -98,13 +98,16 @@ globalThis.AGR = globalThis.AGR || {};
   }
 
   // The selftest source (tuner.html?selftest): an inaudible oscillator at
-  // low E, 15 cents flat, snapping in tune after five seconds. It exercises
-  // the whole pipeline with no microphone and no permission, including on
-  // pages opened straight from disk, for development and automated checks.
-  // Nothing on the page mentions it, and nothing reaches the speakers.
+  // F, one semitone above the open low E and 15 cents flat, snapping in
+  // tune after five seconds. A fretted note on purpose: the loop proves the
+  // tuner names the nearest note instead of assuming an open string. It
+  // exercises the whole pipeline with no microphone and no permission,
+  // including on pages opened straight from disk, for development and
+  // automated checks. Nothing on the page mentions it, and nothing reaches
+  // the speakers.
   function startSelftest(context, callbacks) {
     var oscillator = context.createOscillator();
-    oscillator.frequency.value = AGR.pitch.midiToFrequency(40);
+    oscillator.frequency.value = AGR.pitch.midiToFrequency(41);
     oscillator.detune.value = -15;
     var destination = context.createMediaStreamDestination();
     oscillator.connect(destination);
