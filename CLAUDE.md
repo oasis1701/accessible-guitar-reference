@@ -33,7 +33,7 @@ Must exit clean. It verifies the schema, recomputes every chord's real pitches t
 - `js/pitch.js` — pure tuner math, Node-loadable: NSDF pitch detector, frequency conversion, stability smoother, and the announcement gate (`createAnnouncer`). Validator Phase F tests it on synthesized waves and scripted timelines.
 - `js/tuner.js` — browser-only microphone engine for tuner.html (getUserMedia with echo cancellation and noise suppression off but auto gain ON — quiet unplugged guitars need it and it cannot move the pitch; analyser polling, idempotent stop). `tuner.html?selftest` swaps the microphone for an inaudible oscillator so the whole loop runs with no permission, including from file://. The selftest plays F, a fretted note, so the loop proves closest-note naming.
 - `js/page.js` — browser-only DOM glue, dispatched by `<body data-category>`.
-- HTML pages — one h3 per chord or shape sitewide (screen-reader heading-key navigation), a real list as table of contents, native form elements only, skip link, landmarks.
+- HTML pages — one h3 per chord or shape sitewide (screen-reader heading-key navigation), a real list as table of contents, native form elements only, skip link, landmarks, and a visible level 2 "Site menu" heading naming the site navigation (maintainer decision, 2026-08-10; the page h1 stays the only level 1).
 - `conventions.html` — the reader-facing grammar contract. Keep it in sync with renderer changes.
 
 ## Deploy
