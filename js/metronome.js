@@ -223,12 +223,27 @@ globalThis.AGR = globalThis.AGR || {};
     }
   }
 
+  // Only iPhones and iPads need the media element route below. Every
+  // browser on iOS is WebKit, and iPadOS reports itself as a Mac, so a
+  // Mac with a touch screen counts too.
+  function needsMediaElement() {
+    var ua = navigator.userAgent || "";
+    var platform = navigator.platform || "";
+    if (/iPhone|iPad|iPod/.test(platform) || /iPhone|iPad|iPod/.test(ua)) return true;
+    return /Mac/.test(platform) && navigator.maxTouchPoints > 1;
+  }
+
   // Route the master gain into an audio element, as a media stream. iPhones
   // and iPads stop plain Web Audio the moment the screen locks or the
   // browser leaves the foreground, but they keep media playback going, so
   // the click is delivered the way a music site delivers a song. The
   // element must start inside the same press that started the engine. If
   // it cannot play, the sound falls back to the ordinary output.
+  //
+  // Everywhere else the ordinary output is used: a media stream is kept in
+  // step with the speakers by quietly speeding playback up and slowing it
+  // back, which on a pure tone is heard as the pitch drifting lower and
+  // recovering every few bars (maintainer report, 2026-09-24).
   function connectOutput(active, sink) {
     var context = active.context;
     var master = active.master;
@@ -242,7 +257,8 @@ globalThis.AGR = globalThis.AGR || {};
       }
       master.connect(context.destination);
     }
-    if (!sink || !context.createMediaStreamDestination || !("srcObject" in sink)) {
+    if (!sink || !needsMediaElement() || !context.createMediaStreamDestination ||
+        !("srcObject" in sink)) {
       direct();
       return;
     }
