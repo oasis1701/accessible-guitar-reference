@@ -818,7 +818,7 @@ function runTicks(config, count, startAt) {
     volume: 140, trainer: { enabled: "true", step: "5", everyBars: 9, targetBpm: 0 }
   });
   const wantClamped = {
-    bpm: 500, beatsPerBar: 2, accent: false, subdivision: 3, sound: "click", volume: 100,
+    bpm: 500, beatsPerBar: 2, accent: false, subdivision: 3, sound: "beep", volume: 100,
     trainer: { enabled: true, step: 5, everyBars: 4, targetBpm: 30 }
   };
   if (JSON.stringify(clamped) !== JSON.stringify(wantClamped)) {

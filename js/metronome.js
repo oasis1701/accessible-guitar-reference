@@ -35,8 +35,8 @@ globalThis.AGR = globalThis.AGR || {};
   var SOUNDS = {
     click: {
       type: "tone", wave: "sine", decay: 0.03,
-      accent: { freq: 1600, level: 1 },
-      beat: { freq: 1100, level: 0.8 },
+      accent: { freq: 2000, level: 1 },
+      beat: { freq: 1500, level: 0.8 },
       sub: { freq: 800, level: 0.45 }
     },
     beep: {
@@ -176,7 +176,7 @@ globalThis.AGR = globalThis.AGR || {};
   // Place one click of the named sound and kind on the clock at time. Also
   // exposed so a check can render a click offline and inspect it.
   function scheduleClick(context, destination, soundName, kind, time) {
-    var sound = SOUNDS[soundName] || SOUNDS.click;
+    var sound = SOUNDS[soundName] || SOUNDS.beep;
     var spec = sound[kind] || sound.beat;
     if (sound.type === "modal") {
       scheduleModal(context, destination, sound, spec, time);

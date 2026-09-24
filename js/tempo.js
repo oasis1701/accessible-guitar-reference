@@ -16,7 +16,7 @@ globalThis.AGR = globalThis.AGR || {};
   var MIN_BEATS = 2;
   var MAX_BEATS = 8;
   var SUBDIVISIONS = [1, 2, 3, 4];   // clicks per beat
-  var SOUNDS = ["click", "beep", "wood", "woodblock"];
+  var SOUNDS = ["beep", "click", "wood", "woodblock"];
   var TRAINER_STEPS = [1, 2, 5, 10];  // beats per minute added per raise
   var TRAINER_BARS = [2, 4, 8, 16];   // bars between raises
 
@@ -25,7 +25,7 @@ globalThis.AGR = globalThis.AGR || {};
     beatsPerBar: 4,
     accent: true,
     subdivision: 1,
-    sound: "click",
+    sound: "beep",
     volume: 80,
     trainer: { enabled: false, step: 5, everyBars: 4, targetBpm: 160 }
   };
