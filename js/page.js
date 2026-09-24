@@ -469,6 +469,7 @@
     var beatP = document.getElementById("metronome-beat");
     var startButton = document.getElementById("metronome-start");
     var tapButton = document.getElementById("metronome-tap");
+    var sink = document.getElementById("metronome-sink");
     var form = document.getElementById("metronome-form");
     var fields = {
       bpm: document.getElementById("metronome-bpm"),
@@ -606,11 +607,27 @@
       }
     });
 
-    startButton.addEventListener("click", function () {
-      if (AGR.metronome.running()) {
-        AGR.metronome.stop();
-        return;
+    // The system media controls (lock screen, headphone buttons, the
+    // browser's own media panel) see the metronome as playing media, so
+    // they can stop and restart it. Everything here is optional and
+    // guarded: browsers without the Media Session API simply skip it.
+    function setMediaState(state) {
+      try {
+        if (!navigator.mediaSession) return;
+        navigator.mediaSession.playbackState = state;
+        if (state === "playing" && globalThis.MediaMetadata) {
+          navigator.mediaSession.metadata = new MediaMetadata({
+            title: "Metronome",
+            artist: "Accessible Guitar Reference"
+          });
+        }
+      } catch (err) {
+        // Not supported here.
       }
+    }
+
+    function startMetronome() {
+      if (AGR.metronome.running()) return;
       startButton.disabled = true;
       AGR.metronome.start(config, {
         onStarted: function () {
@@ -618,6 +635,7 @@
           startButton.disabled = false;
           startButton.textContent = "Stop metronome";
           renderStatus();
+          setMediaState("playing");
         },
         onStopped: function () {
           running = false;
@@ -626,12 +644,14 @@
           beatP.textContent = "";
           beatP.classList.remove("accent");
           renderStatus();
+          setMediaState("paused");
         },
         onError: function (kind) {
           running = false;
           startButton.disabled = false;
           startButton.textContent = "Start metronome";
           statusP.textContent = AGR.render.metronomeStateText(kind);
+          setMediaState("none");
         },
         // Visual only: the paragraph is aria-hidden, so this never
         // reaches a screen reader.
@@ -645,8 +665,26 @@
           save();
           renderStatus();
         }
-      });
+      }, { sink: sink });
+    }
+
+    startButton.addEventListener("click", function () {
+      if (AGR.metronome.running()) {
+        AGR.metronome.stop();
+        return;
+      }
+      startMetronome();
     });
+
+    try {
+      if (navigator.mediaSession && navigator.mediaSession.setActionHandler) {
+        navigator.mediaSession.setActionHandler("play", startMetronome);
+        navigator.mediaSession.setActionHandler("pause", AGR.metronome.stop);
+        navigator.mediaSession.setActionHandler("stop", AGR.metronome.stop);
+      }
+    } catch (err) {
+      // Not supported here.
+    }
 
     // Leaving the page must silence the click.
     window.addEventListener("pagehide", function () {

@@ -84,12 +84,28 @@ globalThis.AGR = globalThis.AGR || {};
     return v * v;
   }
 
+  function ignore() {}
+
   function closeContext(context) {
     try {
       var closed = context.close();
-      if (closed && closed.catch) closed.catch(function () {});
+      if (closed && closed.catch) closed.catch(ignore);
     } catch (err) {
       // An already-closed context is fine.
+    }
+  }
+
+  // Safari 17 and later let a page declare that its sound is media
+  // playback: it then carries on with the screen locked and is not
+  // silenced by the ring/silent switch. Other browsers have no such
+  // setting and ignore this.
+  function setAudioSession(type) {
+    try {
+      if (navigator.audioSession && "type" in navigator.audioSession) {
+        navigator.audioSession.type = type;
+      }
+    } catch (err) {
+      // Not supported here.
     }
   }
 
@@ -130,7 +146,6 @@ globalThis.AGR = globalThis.AGR || {};
     var out = context.createGain();
     out.gain.value = spec.level;
     out.connect(destination);
-    var longest = 0;
     sound.modes.forEach(function (mode) {
       var osc = context.createOscillator();
       osc.type = "sine";
@@ -140,7 +155,6 @@ globalThis.AGR = globalThis.AGR || {};
       gain.connect(out);
       osc.start(time);
       osc.stop(time + mode[2] + 0.02);
-      if (mode[2] > longest) longest = mode[2];
     });
     var knock = sound.knock;
     if (knock) {
@@ -185,6 +199,17 @@ globalThis.AGR = globalThis.AGR || {};
   function pump() {
     var active = running;
     if (!active) return;
+    // A phone call, another app, or a lock screen can suspend the context
+    // behind our back; ask for it back whenever we get to run.
+    var state = active.context.state;
+    if (state !== "running" && state !== "closed" && active.context.resume) {
+      try {
+        var resumed = active.context.resume();
+        if (resumed && resumed.catch) resumed.catch(ignore);
+      } catch (err) {
+        // Nothing to do until the browser lets audio through again.
+      }
+    }
     var hidden = globalThis.document && document.hidden;
     var horizon = active.context.currentTime + (hidden ? HIDDEN_LOOKAHEAD_S : LOOKAHEAD_S);
     while (active.sequencer.peek() < horizon) {
@@ -198,16 +223,73 @@ globalThis.AGR = globalThis.AGR || {};
     }
   }
 
+  // Route the master gain into an audio element, as a media stream. iPhones
+  // and iPads stop plain Web Audio the moment the screen locks or the
+  // browser leaves the foreground, but they keep media playback going, so
+  // the click is delivered the way a music site delivers a song. The
+  // element must start inside the same press that started the engine. If
+  // it cannot play, the sound falls back to the ordinary output.
+  function connectOutput(active, sink) {
+    var context = active.context;
+    var master = active.master;
+    function direct() {
+      if (running !== active || active.direct) return;
+      active.direct = true;
+      try {
+        master.disconnect();
+      } catch (err) {
+        // Nothing was connected.
+      }
+      master.connect(context.destination);
+    }
+    if (!sink || !context.createMediaStreamDestination || !("srcObject" in sink)) {
+      direct();
+      return;
+    }
+    try {
+      var streamOut = context.createMediaStreamDestination();
+      master.connect(streamOut);
+      sink.srcObject = streamOut.stream;
+      // The element's own progress events are timed by playback, not by
+      // page timers, so they keep the scheduler fed when timers slow.
+      sink.ontimeupdate = pump;
+      active.sink = sink;
+      var played = sink.play();
+      if (played && played.catch) played.catch(direct);
+    } catch (err) {
+      direct();
+    }
+  }
+
+  function releaseSink(active) {
+    var sink = active.sink;
+    if (!sink) return;
+    active.sink = null;
+    sink.ontimeupdate = null;
+    try {
+      sink.pause();
+    } catch (err) {
+      // Already stopped.
+    }
+    try {
+      sink.srcObject = null;
+    } catch (err) {
+      // Nothing to release.
+    }
+  }
+
   // callbacks: onStarted(), onStopped(), onError(kind), onBeat(tick,
   // beatsPerBar), onTempo(bpm). config is any AGR.tempo config; it is
-  // sanitized here. A second start while running is a no-op.
-  function start(config, callbacks) {
+  // sanitized here. options.sink is the page's audio element, or absent.
+  // A second start while running is a no-op.
+  function start(config, callbacks, options) {
     if (running) return;
     var ContextClass = audioContextClass();
     if (!ContextClass) {
       callbacks.onError("unsupported");
       return;
     }
+    setAudioSession("playback");
     var context;
     try {
       context = new ContextClass();
@@ -220,7 +302,7 @@ globalThis.AGR = globalThis.AGR || {};
     if (context.resume) {
       try {
         var resumed = context.resume();
-        if (resumed && resumed.catch) resumed.catch(function () {});
+        if (resumed && resumed.catch) resumed.catch(ignore);
       } catch (err) {
         // Older engines resume on their own.
       }
@@ -228,7 +310,6 @@ globalThis.AGR = globalThis.AGR || {};
     var clean = AGR.tempo.sanitize(config);
     var master = context.createGain();
     master.gain.value = gainForVolume(clean.volume);
-    master.connect(context.destination);
     var sequencer = AGR.tempo.createSequencer(clean);
     sequencer.start(context.currentTime + START_DELAY_S);
     running = {
@@ -237,8 +318,11 @@ globalThis.AGR = globalThis.AGR || {};
       sequencer: sequencer,
       config: clean,
       callbacks: callbacks,
-      timer: null
+      timer: null,
+      sink: null,
+      direct: false
     };
+    connectOutput(running, options && options.sink);
     pump();
     running.timer = setInterval(pump, PUMP_MS);
     callbacks.onStarted();
@@ -258,19 +342,22 @@ globalThis.AGR = globalThis.AGR || {};
     active.master.gain.value = gainForVolume(clean.volume);
   }
 
-  // Idempotent: stops the timer and closes the context, which silences
-  // every click already placed on the clock, then reports back once.
+  // Idempotent: stops the timer, the audio element, and the context, which
+  // silences every click already placed on the clock, then reports back
+  // once.
   function stop() {
     if (!running) return;
     var active = running;
     running = null;
     clearInterval(active.timer);
+    releaseSink(active);
     try {
       active.master.disconnect();
     } catch (err) {
       // Already disconnected.
     }
     closeContext(active.context);
+    setAudioSession("auto");
     active.callbacks.onStopped();
   }
 
@@ -281,6 +368,9 @@ globalThis.AGR = globalThis.AGR || {};
     update: update,
     stop: stop,
     running: function () { return !!running; },
-    tempo: function () { return running ? running.sequencer.tempo() : null; }
+    tempo: function () { return running ? running.sequencer.tempo() : null; },
+    // Whether sound is going through the page's audio element (true) or
+    // straight to the speakers (false); null when stopped.
+    viaElement: function () { return running ? !running.direct : null; }
   };
 })();

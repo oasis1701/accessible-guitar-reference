@@ -44,6 +44,10 @@
   <!-- Visual only, for sighted helpers: a beat counter that changes on
        every beat. aria-hidden keeps that churn away from screen readers. -->
   <p id="metronome-beat" class="beat-indicator" aria-hidden="true"></p>
+  <!-- The click is delivered through this element as a media stream, so
+       phones keep playing it with the screen locked. It has no controls,
+       so it is neither shown nor read; the Start button is the control. -->
+  <audio id="metronome-sink"></audio>
   <form id="metronome-form">
     <fieldset>
       <legend>Tempo</legend>
