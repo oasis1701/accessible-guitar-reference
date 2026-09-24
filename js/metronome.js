@@ -22,30 +22,50 @@ globalThis.AGR = globalThis.AGR || {};
   var HIDDEN_LOOKAHEAD_S = 2.5;
   var START_DELAY_S = 0.05;
 
-  // Each sound is a short enveloped oscillator. The three kinds differ in
-  // both pitch and level so they stay apart by ear alone: the accent is
-  // the highest and loudest, subdivisions the lowest and quietest. The
-  // wood block adds a quick pitch fall for its knock.
+  // Each sound is short and enveloped. The three kinds differ in both pitch
+  // and level so they stay apart by ear alone: the accent is the highest
+  // and loudest, subdivisions the lowest and quietest.
+  //
+  // "tone" sounds are one oscillator; "wood" (kept under its original
+  // stored value, shown as Arcade hit) adds a quick pitch fall, which is
+  // exactly what makes it sound electronic. "modal" sounds imitate a struck
+  // object instead: a brief band-filtered noise burst for the mallet
+  // contact, then a few fast-decaying, inharmonic sine partials for the
+  // object's own ring, and no pitch sweep at all.
   var SOUNDS = {
     click: {
-      type: "sine", decay: 0.03,
+      type: "tone", wave: "sine", decay: 0.03,
       accent: { freq: 1600, level: 1 },
       beat: { freq: 1100, level: 0.8 },
       sub: { freq: 800, level: 0.45 }
     },
     beep: {
-      type: "sine", decay: 0.1,
+      type: "tone", wave: "sine", decay: 0.1,
       accent: { freq: 1046.5, level: 1 },
       beat: { freq: 784, level: 0.75 },
       sub: { freq: 523.25, level: 0.4 }
     },
     wood: {
-      type: "triangle", decay: 0.04, fall: 0.5,
+      type: "tone", wave: "triangle", decay: 0.04, fall: 0.5,
       accent: { freq: 1000, level: 1 },
       beat: { freq: 700, level: 0.8 },
       sub: { freq: 520, level: 0.45 }
+    },
+    woodblock: {
+      type: "modal",
+      // Each mode: frequency ratio to the fundamental, level, decay seconds.
+      // Levels sum to about one with the knock, so nothing clips at full
+      // volume. The partial ratios are deliberately not whole numbers: a
+      // block of wood does not ring in harmonics.
+      modes: [[1, 0.56, 0.06], [2.13, 0.25, 0.035], [3.31, 0.13, 0.02]],
+      knock: { level: 0.38, decay: 0.015, q: 5 },
+      accent: { freq: 1400, level: 1 },
+      beat: { freq: 1000, level: 0.8 },
+      sub: { freq: 750, level: 0.45 }
     }
   };
+
+  var NOISE_S = 0.05;
 
   var running = null; // The active engine state, or null.
 
@@ -73,24 +93,82 @@ globalThis.AGR = globalThis.AGR || {};
     }
   }
 
-  function playClick(active, tick) {
-    var sound = SOUNDS[active.config.sound] || SOUNDS.click;
-    var spec = sound[tick.kind] || sound.beat;
-    var context = active.context;
-    var osc = context.createOscillator();
+  // One buffer of white noise per context, made on first use.
+  function noiseBuffer(context) {
+    if (context.agrNoise) return context.agrNoise;
+    var length = Math.ceil(context.sampleRate * NOISE_S);
+    var buffer = context.createBuffer(1, length, context.sampleRate);
+    var data = buffer.getChannelData(0);
+    for (var i = 0; i < length; i++) data[i] = Math.random() * 2 - 1;
+    context.agrNoise = buffer;
+    return buffer;
+  }
+
+  function envelope(context, level, time, decay) {
     var gain = context.createGain();
-    osc.type = sound.type;
-    osc.frequency.setValueAtTime(spec.freq, tick.time);
-    if (sound.fall) {
-      osc.frequency.exponentialRampToValueAtTime(spec.freq * sound.fall, tick.time + sound.decay);
-    }
-    gain.gain.setValueAtTime(spec.level, tick.time);
+    gain.gain.setValueAtTime(level, time);
     // Never ramp to zero: an exponential ramp cannot reach it.
-    gain.gain.exponentialRampToValueAtTime(0.001, tick.time + sound.decay);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + decay);
+    return gain;
+  }
+
+  function scheduleTone(context, destination, sound, spec, time) {
+    var osc = context.createOscillator();
+    osc.type = sound.wave;
+    osc.frequency.setValueAtTime(spec.freq, time);
+    if (sound.fall) {
+      osc.frequency.exponentialRampToValueAtTime(spec.freq * sound.fall, time + sound.decay);
+    }
+    var gain = envelope(context, spec.level, time, sound.decay);
     osc.connect(gain);
-    gain.connect(active.master);
-    osc.start(tick.time);
-    osc.stop(tick.time + sound.decay + 0.02);
+    gain.connect(destination);
+    osc.start(time);
+    osc.stop(time + sound.decay + 0.02);
+  }
+
+  function scheduleModal(context, destination, sound, spec, time) {
+    var out = context.createGain();
+    out.gain.value = spec.level;
+    out.connect(destination);
+    var longest = 0;
+    sound.modes.forEach(function (mode) {
+      var osc = context.createOscillator();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(spec.freq * mode[0], time);
+      var gain = envelope(context, mode[1], time, mode[2]);
+      osc.connect(gain);
+      gain.connect(out);
+      osc.start(time);
+      osc.stop(time + mode[2] + 0.02);
+      if (mode[2] > longest) longest = mode[2];
+    });
+    var knock = sound.knock;
+    if (knock) {
+      var source = context.createBufferSource();
+      source.buffer = noiseBuffer(context);
+      var filter = context.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.setValueAtTime(spec.freq, time);
+      filter.Q.value = knock.q;
+      var gain = envelope(context, knock.level, time, knock.decay);
+      source.connect(filter);
+      filter.connect(gain);
+      gain.connect(out);
+      source.start(time);
+      source.stop(time + knock.decay + 0.02);
+    }
+  }
+
+  // Place one click of the named sound and kind on the clock at time. Also
+  // exposed so a check can render a click offline and inspect it.
+  function scheduleClick(context, destination, soundName, kind, time) {
+    var sound = SOUNDS[soundName] || SOUNDS.click;
+    var spec = sound[kind] || sound.beat;
+    if (sound.type === "modal") {
+      scheduleModal(context, destination, sound, spec, time);
+    } else {
+      scheduleTone(context, destination, sound, spec, time);
+    }
   }
 
   // Tell the page about a beat at the moment it sounds (not when it is
@@ -111,7 +189,7 @@ globalThis.AGR = globalThis.AGR || {};
     var horizon = active.context.currentTime + (hidden ? HIDDEN_LOOKAHEAD_S : LOOKAHEAD_S);
     while (active.sequencer.peek() < horizon) {
       var tick = active.sequencer.next();
-      playClick(active, tick);
+      scheduleClick(active.context, active.master, active.config.sound, tick.kind, tick.time);
       notifyBeat(active, tick);
       if (tick.tempoChanged) {
         active.config.bpm = tick.bpm;
@@ -198,6 +276,7 @@ globalThis.AGR = globalThis.AGR || {};
 
   AGR.metronome = {
     isSupported: isSupported,
+    scheduleClick: scheduleClick,
     start: start,
     update: update,
     stop: stop,

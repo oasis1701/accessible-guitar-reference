@@ -830,7 +830,13 @@ function runTicks(config, count, startAt) {
     error(c, "a partial patch must keep the base for what it leaves out");
   }
   if (tempo.sanitize({ bpm: 99.6 }).bpm !== 100) error(c, "bpm must be rounded to an integer");
-  metronomeTimelineChecks += 6;
+  // Every catalogued sound survives sanitizing, so a stored choice is never
+  // silently swapped for the default.
+  for (const sound of tempo.SOUNDS) {
+    if (tempo.sanitize({ sound }).sound !== sound) error(c, `sound "${sound}" must be accepted`);
+  }
+  if (tempo.SOUNDS.indexOf("wood") === -1) error(c, "the published sound value \"wood\" must never be removed");
+  metronomeTimelineChecks += 6 + tempo.SOUNDS.length + 1;
 }
 
 {

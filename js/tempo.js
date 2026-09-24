@@ -16,7 +16,7 @@ globalThis.AGR = globalThis.AGR || {};
   var MIN_BEATS = 2;
   var MAX_BEATS = 8;
   var SUBDIVISIONS = [1, 2, 3, 4];   // clicks per beat
-  var SOUNDS = ["click", "beep", "wood"];
+  var SOUNDS = ["click", "beep", "wood", "woodblock"];
   var TRAINER_STEPS = [1, 2, 5, 10];  // beats per minute added per raise
   var TRAINER_BARS = [2, 4, 8, 16];   // bars between raises
 
