@@ -460,6 +460,200 @@
     });
   }
 
+  // --- Metronome page ---
+
+  function initMetronome() {
+    var STORAGE_KEY = "agr:metronome:v1";
+    var statusP = document.getElementById("metronome-status");
+    var tapP = document.getElementById("metronome-tap-result");
+    var beatP = document.getElementById("metronome-beat");
+    var startButton = document.getElementById("metronome-start");
+    var tapButton = document.getElementById("metronome-tap");
+    var form = document.getElementById("metronome-form");
+    var fields = {
+      bpm: document.getElementById("metronome-bpm"),
+      beatsPerBar: document.getElementById("metronome-beats"),
+      accent: document.getElementById("metronome-accent"),
+      subdivision: document.getElementById("metronome-subdivision"),
+      sound: document.getElementById("metronome-sound"),
+      volume: document.getElementById("metronome-volume"),
+      trainerEnabled: document.getElementById("metronome-trainer"),
+      trainerStep: document.getElementById("metronome-trainer-step"),
+      trainerEvery: document.getElementById("metronome-trainer-every"),
+      trainerTarget: document.getElementById("metronome-trainer-target")
+    };
+    var tapper = AGR.tempo.createTapTempo();
+    var running = false;
+    var config = load();
+
+    // The metronome keeps its own settings, remembered like the site
+    // settings (js/settings.js) and guarded the same way: with no storage
+    // the page simply starts from the defaults.
+    function load() {
+      var raw = null;
+      try {
+        raw = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      } catch (err) {
+        raw = null;
+      }
+      return AGR.tempo.sanitize(raw);
+    }
+
+    function save() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+      } catch (err) {
+        // Storage unavailable: settings hold for this page view only.
+      }
+    }
+
+    // Write the config into the form. The tempo field is left alone while
+    // the player is typing in it (the trainer can raise the tempo at any
+    // moment); the blur handler below syncs it afterwards.
+    function fillForm() {
+      if (document.activeElement !== fields.bpm) fields.bpm.value = config.bpm;
+      fields.beatsPerBar.value = String(config.beatsPerBar);
+      fields.accent.checked = config.accent;
+      fields.subdivision.value = String(config.subdivision);
+      fields.sound.value = config.sound;
+      fields.volume.value = config.volume;
+      fields.trainerEnabled.checked = config.trainer.enabled;
+      fields.trainerStep.value = String(config.trainer.step);
+      fields.trainerEvery.value = String(config.trainer.everyBars);
+      fields.trainerTarget.value = config.trainer.targetBpm;
+      var trainerOff = !config.trainer.enabled;
+      fields.trainerStep.disabled = trainerOff;
+      fields.trainerEvery.disabled = trainerOff;
+      fields.trainerTarget.disabled = trainerOff;
+    }
+
+    function readForm() {
+      config = AGR.tempo.sanitize({
+        bpm: fields.bpm.value,
+        beatsPerBar: fields.beatsPerBar.value,
+        accent: fields.accent.checked,
+        subdivision: fields.subdivision.value,
+        sound: fields.sound.value,
+        volume: fields.volume.value,
+        trainer: {
+          enabled: fields.trainerEnabled.checked,
+          step: fields.trainerStep.value,
+          everyBars: fields.trainerEvery.value,
+          targetBpm: fields.trainerTarget.value
+        }
+      }, config);
+    }
+
+    // Plain text, deliberately not a live region (CLAUDE.md rule 2): the
+    // click itself is the feedback, and this paragraph is for reading on
+    // demand. It changes only on the player's own actions and when the
+    // speed trainer raises the tempo, never per beat.
+    function renderStatus() {
+      statusP.textContent = AGR.render.metronomeStatus(config, running);
+    }
+
+    function apply() {
+      fillForm();
+      save();
+      renderStatus();
+      if (running) AGR.metronome.update(config);
+    }
+
+    if (!AGR.metronome.isSupported()) {
+      statusP.textContent = AGR.render.metronomeStateText("unsupported");
+      return;
+    }
+    fillForm();
+    renderStatus();
+    startButton.disabled = false;
+    tapButton.disabled = false;
+
+    form.addEventListener("submit", function (event) {
+      event.preventDefault();
+    });
+
+    form.addEventListener("change", function (event) {
+      if (event.target.tagName === "BUTTON") return;
+      readForm();
+      apply();
+    });
+
+    // The volume slider is heard as it moves; everything else waits for
+    // the change event, so a half-typed tempo is never applied.
+    fields.volume.addEventListener("input", function () {
+      config = AGR.tempo.sanitize({ volume: fields.volume.value }, config);
+      if (running) AGR.metronome.update(config);
+    });
+
+    fields.bpm.addEventListener("blur", function () {
+      fields.bpm.value = config.bpm;
+    });
+
+    Array.prototype.forEach.call(form.querySelectorAll("button[data-nudge]"), function (button) {
+      button.addEventListener("click", function () {
+        var delta = Number(button.getAttribute("data-nudge"));
+        config = AGR.tempo.sanitize({ bpm: config.bpm + delta }, config);
+        apply();
+      });
+    });
+
+    tapButton.addEventListener("click", function () {
+      var result = tapper.tap(Date.now());
+      tapP.textContent = AGR.render.metronomeTapText(result);
+      if (result.bpm !== null) {
+        config = AGR.tempo.sanitize({ bpm: result.bpm }, config);
+        apply();
+      }
+    });
+
+    startButton.addEventListener("click", function () {
+      if (AGR.metronome.running()) {
+        AGR.metronome.stop();
+        return;
+      }
+      startButton.disabled = true;
+      AGR.metronome.start(config, {
+        onStarted: function () {
+          running = true;
+          startButton.disabled = false;
+          startButton.textContent = "Stop metronome";
+          renderStatus();
+        },
+        onStopped: function () {
+          running = false;
+          startButton.disabled = false;
+          startButton.textContent = "Start metronome";
+          beatP.textContent = "";
+          beatP.classList.remove("accent");
+          renderStatus();
+        },
+        onError: function (kind) {
+          running = false;
+          startButton.disabled = false;
+          startButton.textContent = "Start metronome";
+          statusP.textContent = AGR.render.metronomeStateText(kind);
+        },
+        // Visual only: the paragraph is aria-hidden, so this never
+        // reaches a screen reader.
+        onBeat: function (tick, beatsPerBar) {
+          beatP.textContent = AGR.render.metronomeBeatText(tick, beatsPerBar);
+          beatP.classList.toggle("accent", tick.kind === "accent");
+        },
+        onTempo: function (bpm) {
+          config = AGR.tempo.sanitize({ bpm: bpm }, config);
+          fillForm();
+          save();
+          renderStatus();
+        }
+      });
+    });
+
+    // Leaving the page must silence the click.
+    window.addEventListener("pagehide", function () {
+      AGR.metronome.stop();
+    });
+  }
+
   var registry = {
     "open-chords": renderOpenChords,
     "power-chords": renderPowerChords,
@@ -468,7 +662,8 @@
     "chord-finder": initChordFinder,
     "fretboard": renderFretboard,
     "settings": initSettingsPage,
-    "tuner": initTuner
+    "tuner": initTuner,
+    "metronome": initMetronome
   };
 
   if (registry[category]) registry[category]();

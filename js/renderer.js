@@ -1,4 +1,5 @@
-// renderer.js — generates every piece of description text on the site.
+// renderer.js — generates every piece of description text on the site,
+// including the tuner and metronome phrases.
 // Pure functions only: no DOM, no storage. Loads as a classic script in the
 // browser and via require() in Node (tools/validate.js), through globalThis.AGR.
 //
@@ -455,6 +456,86 @@ globalThis.AGR = globalThis.AGR || {};
     return text;
   }
 
+  // --- Metronome text ---
+
+  // Clicks per beat, by subdivision count. The note-value name follows the
+  // count so the plain fact comes first.
+  var SUBDIVISION_TEXT = {
+    1: "one click per beat",
+    2: "two clicks per beat, eighth notes",
+    3: "three clicks per beat, triplets",
+    4: "four clicks per beat, sixteenth notes"
+  };
+
+  function beatsPerMinute(n) {
+    return n + (n === 1 ? " beat per minute" : " beats per minute");
+  }
+
+  // The metronome's status paragraph: the live state and every setting
+  // that shapes what is heard, in words, for reading on demand. config is
+  // a sanitized AGR.tempo config; running says whether the click is going.
+  function metronomeStatus(config, running) {
+    if (!config || !isFinite(config.bpm) || !config.trainer) {
+      throw new Error("metronomeStatus needs a sanitized metronome config");
+    }
+    var parts = [];
+    parts.push(running
+      ? "Running at " + beatsPerMinute(config.bpm) + "."
+      : "Stopped. Set to " + beatsPerMinute(config.bpm) + ".");
+    parts.push(config.beatsPerBar + " beats per bar, " +
+      (config.accent ? "first beat accented." : "no accent."));
+    var subdivision = SUBDIVISION_TEXT[config.subdivision];
+    if (!subdivision) throw new Error("No metronome text for subdivision: " + config.subdivision);
+    parts.push(capitalize(subdivision) + ".");
+    var trainer = config.trainer;
+    if (trainer.enabled) {
+      if (config.bpm >= trainer.targetBpm) {
+        parts.push("Speed trainer: the tempo is already at or above the target of " +
+          beatsPerMinute(trainer.targetBpm) + ", so it stays as it is.");
+      } else {
+        parts.push("Speed trainer: faster by " + beatsPerMinute(trainer.step) +
+          " every " + trainer.everyBars + " bars, until " +
+          beatsPerMinute(trainer.targetBpm) + ".");
+      }
+    }
+    return parts.join(" ");
+  }
+
+  // The tap tempo result: result is {count, bpm} from AGR.tempo's tap
+  // tempo, with bpm null until two taps exist.
+  function metronomeTapText(result) {
+    if (!result || !isFinite(result.count) || result.count < 1) {
+      throw new Error("metronomeTapText needs a tap result with a count");
+    }
+    var taps = result.count === 1 ? "1 tap" : result.count + " taps";
+    if (result.bpm === null || result.bpm === undefined) {
+      return taps + " so far. Tap again on each beat.";
+    }
+    return taps + ". Tempo set to " + beatsPerMinute(result.bpm) + ".";
+  }
+
+  // The visual-only beat counter for sighted helpers (aria-hidden on the
+  // page, so it never reaches a screen reader).
+  function metronomeBeatText(tick, beatsPerBar) {
+    if (!tick || !isFinite(tick.beat) || !isFinite(tick.bar) || !isFinite(beatsPerBar)) {
+      throw new Error("metronomeBeatText needs a tick and the beats per bar");
+    }
+    return "Beat " + tick.beat + " of " + beatsPerBar + ". Bar " + tick.bar + ".";
+  }
+
+  // Fixed metronome phrases for the states the page can be in when the
+  // status sentence above does not apply.
+  var METRONOME_STATE_TEXT = {
+    "unsupported": "This browser does not support the audio features the metronome needs. Please use a current version of Firefox, Chrome, or Edge.",
+    "error": "Something went wrong while starting the metronome. Reload the page and press Start metronome again."
+  };
+
+  function metronomeStateText(state) {
+    var text = METRONOME_STATE_TEXT[state];
+    if (!text) throw new Error("No metronome text for state: " + state);
+    return text;
+  }
+
   AGR.render = {
     describeChord: describeChord,
     describeShapeRelative: describeShapeRelative,
@@ -469,6 +550,11 @@ globalThis.AGR = globalThis.AGR || {};
     noteNamesForPc: noteNamesForPc,
     tunerReading: tunerReading,
     tunerStateText: tunerStateText,
-    tunerStateKeys: Object.keys(TUNER_STATE_TEXT)
+    tunerStateKeys: Object.keys(TUNER_STATE_TEXT),
+    metronomeStatus: metronomeStatus,
+    metronomeTapText: metronomeTapText,
+    metronomeBeatText: metronomeBeatText,
+    metronomeStateText: metronomeStateText,
+    metronomeStateKeys: Object.keys(METRONOME_STATE_TEXT)
   };
 })();

@@ -15,6 +15,8 @@
 // Phase E: fretboard lines — the generated note tables, linted the same way.
 // Phase F: tuner — prove the pitch detector on synthesized waves and the
 //          announcement gates on scripted timelines; lint every tuner phrase.
+// Phase G: metronome — prove the tick sequencer, the speed trainer, and tap
+//          tempo on scripted timelines; lint every metronome phrase.
 "use strict";
 
 const path = require("path");
@@ -29,6 +31,7 @@ const path = require("path");
   ["data", "octaves.js"],
   ["js", "settings.js"],
   ["js", "pitch.js"],
+  ["js", "tempo.js"],
   ["js", "renderer.js"]
 ].forEach((parts) => require(path.join(__dirname, "..", ...parts)));
 
@@ -778,12 +781,336 @@ function runSmoother(pushes) {
   }
 }
 
+// ---------- Phase G: metronome ----------
+// The metronome's timing is pure (js/tempo.js) and its words come from the
+// renderer, so both are proven here: every tick of a bar for every beats,
+// subdivision, and accent combination, exact tick spacing, tempo changes
+// while running, the speed trainer's raises and cap, tap tempo averaging,
+// settings sanitizing, and every phrase linted like all other generated
+// text. Nothing here touches a clock: times are scripted.
+
+let metronomeTimelineChecks = 0;
+let metronomePhraseTexts = 0;
+
+const tempo = AGR.tempo;
+const nearly = (a, b) => Math.abs(a - b) < 1e-9;
+
+function runTicks(config, count, startAt) {
+  const seq = tempo.createSequencer(config);
+  seq.start(startAt === undefined ? 0 : startAt);
+  const ticks = [];
+  for (let i = 0; i < count; i++) ticks.push(seq.next());
+  return ticks;
+}
+
+{
+  const c = "metronome sanitize";
+  const defaults = tempo.sanitize(null);
+  if (JSON.stringify(defaults) !== JSON.stringify(tempo.DEFAULTS)) {
+    error(c, "sanitize(null) must give the defaults");
+  }
+  if (JSON.stringify(tempo.sanitize("junk")) !== JSON.stringify(defaults) ||
+      JSON.stringify(tempo.sanitize({ bpm: "fast", trainer: 7 })) !== JSON.stringify(defaults)) {
+    error(c, "garbage must fall back to the defaults");
+  }
+  const clamped = tempo.sanitize({
+    bpm: "500", beatsPerBar: "1", accent: "false", subdivision: "3", sound: "gong",
+    volume: 140, trainer: { enabled: "true", step: "5", everyBars: 9, targetBpm: 0 }
+  });
+  const wantClamped = {
+    bpm: 300, beatsPerBar: 2, accent: false, subdivision: 3, sound: "click", volume: 100,
+    trainer: { enabled: true, step: 5, everyBars: 4, targetBpm: 30 }
+  };
+  if (JSON.stringify(clamped) !== JSON.stringify(wantClamped)) {
+    error(c, `clamping gave ${JSON.stringify(clamped)}`);
+  }
+  const base = tempo.sanitize({ bpm: 72, beatsPerBar: 3, sound: "wood" });
+  const patched = tempo.sanitize({ bpm: "" , volume: 20 }, base);
+  if (patched.bpm !== 72 || patched.beatsPerBar !== 3 || patched.sound !== "wood" || patched.volume !== 20) {
+    error(c, "a partial patch must keep the base for what it leaves out");
+  }
+  if (tempo.sanitize({ bpm: 99.6 }).bpm !== 100) error(c, "bpm must be rounded to an integer");
+  metronomeTimelineChecks += 6;
+}
+
+{
+  const c = "metronome ticks";
+  for (const beats of [2, 3, 4, 5, 6, 7, 8]) {
+    for (const subdivision of tempo.SUBDIVISIONS) {
+      for (const accent of [true, false]) {
+        const config = { bpm: 120, beatsPerBar: beats, subdivision, accent };
+        const context = `${c} [${beats} beats, ${subdivision} per beat, accent ${accent}]`;
+        const perBar = beats * subdivision;
+        const first = runTicks(config, perBar * 2 + 1);
+        const second = runTicks(config, perBar * 2 + 1);
+        if (JSON.stringify(first) !== JSON.stringify(second)) error(context, "sequencer is not deterministic");
+        const spacing = tempo.secondsPerTick(120, subdivision);
+        first.forEach((tick, i) => {
+          if (!nearly(tick.time, i * spacing)) error(context, `tick ${i} at ${tick.time}, expected ${i * spacing}`);
+          const wantBar = Math.floor(i / perBar) + 1;
+          const wantBeat = Math.floor((i % perBar) / subdivision) + 1;
+          const wantSub = (i % subdivision) + 1;
+          if (tick.bar !== wantBar || tick.beat !== wantBeat || tick.sub !== wantSub) {
+            error(context, `tick ${i} placed at bar ${tick.bar} beat ${tick.beat} sub ${tick.sub}`);
+          }
+          let wantKind = "beat";
+          if (wantSub !== 1) wantKind = "sub";
+          else if (wantBeat === 1 && accent) wantKind = "accent";
+          if (tick.kind !== wantKind) error(context, `tick ${i} is ${tick.kind}, expected ${wantKind}`);
+          if (tick.bpm !== 120 || tick.tempoChanged) error(context, `tick ${i} reports a tempo change`);
+        });
+        metronomeTimelineChecks += first.length;
+      }
+    }
+  }
+  // Extremes of the tempo range keep exact spacing too.
+  const slow = runTicks({ bpm: 30, subdivision: 1 }, 3);
+  const fast = runTicks({ bpm: 300, subdivision: 4 }, 3);
+  if (!nearly(slow[2].time, 4) || !nearly(fast[2].time, 0.1)) {
+    error(c, "extreme tempos must keep exact spacing");
+  }
+  metronomeTimelineChecks += 2;
+}
+
+{
+  const c = "metronome tempo change";
+  // At 30 beats per minute one tick has sounded at 0 and the next waits for
+  // 2.0. Changing to 120 at 0.1 must pull the pending tick to 0.5 (one new
+  // interval after the last tick), never earlier than now, never doubled.
+  const seq = tempo.createSequencer({ bpm: 30 });
+  seq.start(0);
+  seq.next();
+  seq.update({ bpm: 120 }, 0.1);
+  if (!nearly(seq.peek(), 0.5)) error(c, `realigned tick at ${seq.peek()}, expected 0.5`);
+  if (seq.tempo() !== 120) error(c, "tempo() must report the new tempo");
+  const after = seq.next();
+  if (!nearly(seq.peek(), 1.0) || after.bpm !== 120) error(c, "spacing after the change must be the new interval");
+  // When the new interval has already passed, the tick lands right now.
+  seq.next();
+  seq.update({ bpm: 300 }, 5);
+  if (!nearly(seq.peek(), 5)) error(c, `late realignment at ${seq.peek()}, expected 5`);
+  // A change that leaves timing alone (sound, volume, accent) moves nothing.
+  const still = tempo.createSequencer({ bpm: 60 });
+  still.start(0);
+  still.next();
+  still.update({ sound: "beep", volume: 10, accent: false }, 0.9);
+  if (!nearly(still.peek(), 1)) error(c, "a non-timing change must not move the pending tick");
+  if (still.next().kind !== "beat") error(c, "accent off must take effect on the next beat");
+  // Fewer beats per bar than the current position wraps to a new bar.
+  const wrap = tempo.createSequencer({ bpm: 60, beatsPerBar: 4 });
+  wrap.start(0);
+  wrap.next(); wrap.next(); wrap.next(); // beats 1, 2, 3 of bar 1
+  wrap.update({ beatsPerBar: 2 });
+  const wrapped = wrap.next();
+  if (wrapped.bar !== 2 || wrapped.beat !== 1) error(c, `shrinking the bar gave bar ${wrapped.bar} beat ${wrapped.beat}`);
+  // A subdivision change is heard from the next tick.
+  const sub = tempo.createSequencer({ bpm: 60, subdivision: 1 });
+  sub.start(0);
+  sub.next();
+  sub.update({ subdivision: 2 }, 0.1);
+  if (!nearly(sub.peek(), 0.5)) error(c, "a subdivision change must realign the pending tick");
+  const subTick = sub.next();
+  if (subTick.beat !== 2 || subTick.sub !== 1 || subTick.kind !== "beat") error(c, "position after a subdivision change is wrong");
+  metronomeTimelineChecks += 10;
+}
+
+{
+  const c = "metronome speed trainer";
+  const config = { bpm: 120, beatsPerBar: 4, subdivision: 1,
+    trainer: { enabled: true, step: 5, everyBars: 2, targetBpm: 130 } };
+  const ticks = runTicks(config, 4 * 8);
+  const raises = ticks.filter((t) => t.tempoChanged).map((t) => `bar ${t.bar} beat ${t.beat} to ${t.bpm}`);
+  const wantRaises = ["bar 3 beat 1 to 125", "bar 5 beat 1 to 130"];
+  if (JSON.stringify(raises) !== JSON.stringify(wantRaises)) {
+    error(c, `raises were ${JSON.stringify(raises)}`);
+  }
+  // Timing: bar 3 beat 1 falls at the old spacing, the beat after it at the new.
+  const barThree = ticks.findIndex((t) => t.bar === 3);
+  if (!nearly(ticks[barThree].time - ticks[barThree - 1].time, 0.5)) {
+    error(c, "the first beat of the raised bar must keep the old spacing");
+  }
+  if (!nearly(ticks[barThree + 1].time - ticks[barThree].time, 60 / 125)) {
+    error(c, "the beat after a raise must use the new spacing");
+  }
+  if (ticks[ticks.length - 1].bpm !== 130) error(c, "the tempo must hold at the target");
+  // Target at or below the current tempo: never a raise, never a drop.
+  const flat = runTicks({ bpm: 120, trainer: { enabled: true, step: 5, everyBars: 2, targetBpm: 100 } }, 40);
+  if (flat.some((t) => t.tempoChanged || t.bpm !== 120)) error(c, "a target below the tempo must change nothing");
+  // A step that overshoots stops exactly at the target.
+  const exact = runTicks({ bpm: 120, trainer: { enabled: true, step: 10, everyBars: 2, targetBpm: 125 } }, 40);
+  const exactRaises = exact.filter((t) => t.tempoChanged).map((t) => t.bpm);
+  if (JSON.stringify(exactRaises) !== JSON.stringify([125])) error(c, `overshoot gave ${JSON.stringify(exactRaises)}`);
+  // Disabled: nothing happens.
+  const off = runTicks({ bpm: 120, trainer: { enabled: false, step: 5, everyBars: 2, targetBpm: 200 } }, 40);
+  if (off.some((t) => t.tempoChanged)) error(c, "a disabled trainer must not raise the tempo");
+  // Every spacing in the catalogue raises on the right bar.
+  for (const everyBars of tempo.TRAINER_BARS) {
+    const run = runTicks({ bpm: 60, beatsPerBar: 2, trainer: { enabled: true, step: 1, everyBars, targetBpm: 63 } }, 2 * (everyBars * 3 + 1));
+    const bars = run.filter((t) => t.tempoChanged).map((t) => t.bar);
+    const want = [everyBars + 1, everyBars * 2 + 1, everyBars * 3 + 1];
+    if (JSON.stringify(bars) !== JSON.stringify(want)) error(c, `every ${everyBars} bars raised at ${JSON.stringify(bars)}`);
+  }
+  // The player's own tempo change while running replaces a raised tempo,
+  // and the trainer keeps going from there.
+  const seq = tempo.createSequencer(config);
+  seq.start(0);
+  for (let i = 0; i < 9; i++) seq.next(); // through bar 3 beat 1: now 125
+  if (seq.tempo() !== 125) error(c, "expected 125 after the first raise");
+  seq.update({ bpm: 100 }, 4.6);
+  if (seq.tempo() !== 100 || seq.config().bpm !== 100) error(c, "a typed tempo must replace a raised one");
+  let next;
+  do { next = seq.next(); } while (!next.tempoChanged);
+  if (next.bar !== 5 || next.bpm !== 105) error(c, `after the typed tempo the raise came at bar ${next.bar} to ${next.bpm}`);
+  metronomeTimelineChecks += 12;
+}
+
+{
+  const c = "metronome tap tempo";
+  const run = (times, options) => {
+    const tapper = tempo.createTapTempo(options);
+    return times.map((t) => tapper.tap(t));
+  };
+  const steady = run([0, 500, 1000, 1500]);
+  const want = [{ count: 1, bpm: null }, { count: 2, bpm: 120 }, { count: 3, bpm: 120 }, { count: 4, bpm: 120 }];
+  if (JSON.stringify(steady) !== JSON.stringify(want) || JSON.stringify(run([0, 500, 1000, 1500])) !== JSON.stringify(steady)) {
+    error(c, `steady taps gave ${JSON.stringify(steady)}`);
+  }
+  const jitter = run([0, 480, 1020, 1490, 2010]);
+  if (jitter[4].bpm !== 119) error(c, `jittery taps gave ${jitter[4].bpm}, expected 119`);
+  const gap = run([0, 500, 1000, 4000, 4600]);
+  if (gap[3].count !== 1 || gap[3].bpm !== null || gap[4].count !== 2 || gap[4].bpm !== 100) {
+    error(c, `a long gap must start a fresh count, got ${JSON.stringify(gap.slice(3))}`);
+  }
+  const fast = run([0, 100, 200]);
+  if (fast[2].bpm !== 300) error(c, "very fast taps must clamp to the top of the range");
+  const slow = run([0, 1900, 3800]);
+  if (slow[2].bpm !== 32) error(c, `slow taps gave ${slow[2].bpm}, expected 32`);
+  const tooSlow = run([0, 1999], { resetMs: 3000 });
+  const slowest = run([0, 2500, 5000], { resetMs: 3000 });
+  if (tooSlow[1].bpm !== 30 || slowest[2].bpm !== 30) error(c, "taps slower than 30 must clamp to 30");
+  // Only the most recent intervals count, so a tempo that settles is followed.
+  const settles = run([0, 1000, 2000, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500, 7000, 7500]);
+  if (settles[12].bpm !== 120 || settles[12].count !== 13) error(c, `a settling tempo gave ${JSON.stringify(settles[12])}`);
+  const same = run([0, 0]);
+  if (same[1].bpm !== null) error(c, "two taps at the same instant must not give a tempo");
+  const tapper = tempo.createTapTempo();
+  tapper.tap(0); tapper.tap(500); tapper.reset();
+  if (JSON.stringify(tapper.tap(600)) !== JSON.stringify({ count: 1, bpm: null })) error(c, "reset must forget every tap");
+  metronomeTimelineChecks += 10;
+}
+
+// Metronome phrases: every status the renderer can produce for every
+// combination of the catalogued settings, linted like all other generated
+// text, plus byte-for-byte goldens for the canonical forms.
+{
+  const lintPhrase = (context, produce) => {
+    let first;
+    let second;
+    try {
+      first = produce();
+      second = produce();
+    } catch (e) {
+      error(context, `renderer threw: ${e.message}`);
+      return null;
+    }
+    metronomePhraseTexts += 1;
+    if (first !== second) error(context, "output is not deterministic");
+    if (typeof first !== "string" || first.length === 0) {
+      error(context, "empty phrase");
+      return null;
+    }
+    if (!first.endsWith(".")) error(context, `phrase must end with a period: "${first}"`);
+    if (BANNED_GLYPHS.test(first)) error(context, `banned symbol in: "${first}"`);
+    if (BANNED_WORDS.test(first)) error(context, `banned direction word in: "${first}"`);
+    return first;
+  };
+
+  for (const running of [false, true]) {
+    for (const bpm of [30, 100, 159, 160, 300]) {
+      for (const beats of [2, 3, 4, 5, 6, 7, 8]) {
+        for (const subdivision of tempo.SUBDIVISIONS) {
+          for (const accent of [true, false]) {
+            for (const enabled of [false, true]) {
+              for (const step of tempo.TRAINER_STEPS) {
+                for (const everyBars of tempo.TRAINER_BARS) {
+                  const config = tempo.sanitize({ bpm, beatsPerBar: beats, subdivision, accent,
+                    trainer: { enabled, step, everyBars, targetBpm: 160 } });
+                  const context = `metronome status ${running ? "running" : "stopped"} ${bpm} bpm ${beats}/${subdivision} accent ${accent} trainer ${enabled}/${step}/${everyBars}`;
+                  const text = lintPhrase(context, () => AGR.render.metronomeStatus(config, running));
+                  if (text === null) continue;
+                  if (!text.includes(` ${bpm} beats per minute.`)) error(context, `tempo missing from: "${text}"`);
+                  if (!text.includes(`${beats} beats per bar`)) error(context, `beats per bar missing from: "${text}"`);
+                  if (text.startsWith("Running") !== running) error(context, `wrong state in: "${text}"`);
+                  if (text.includes("Speed trainer") !== enabled) error(context, `trainer wrongly mentioned in: "${text}"`);
+                  if (enabled) {
+                    const reached = bpm >= 160;
+                    if (text.includes("faster by") === reached) error(context, `trainer sentence wrong for ${bpm} toward 160: "${text}"`);
+                    if (!reached && !text.includes(`every ${everyBars} bars`)) error(context, `bars missing from: "${text}"`);
+                  }
+                  if (text.includes("accented") !== accent) error(context, `accent wrong in: "${text}"`);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  for (const count of [1, 2, 3, 9, 40]) {
+    for (const bpm of [null, 30, 118, 300]) {
+      const context = `metronome tap text ${count} taps ${bpm}`;
+      const text = lintPhrase(context, () => AGR.render.metronomeTapText({ count, bpm }));
+      if (text === null) continue;
+      if (text.includes("Tempo set") === (bpm === null)) error(context, `wrong shape: "${text}"`);
+    }
+  }
+
+  for (const beats of [2, 4, 8]) {
+    for (const beat of [1, 2, beats]) {
+      lintPhrase(`metronome beat text ${beat} of ${beats}`,
+        () => AGR.render.metronomeBeatText({ beat, bar: 12, sub: 1, kind: "beat" }, beats));
+    }
+  }
+
+  const stateKeys = AGR.render.metronomeStateKeys;
+  const wantKeys = ["unsupported", "error"];
+  if (JSON.stringify([...stateKeys].sort()) !== JSON.stringify([...wantKeys].sort())) {
+    error("metronome states", `state keys are ${JSON.stringify(stateKeys)}`);
+  }
+  for (const key of stateKeys) {
+    lintPhrase(`metronome state ${key}`, () => AGR.render.metronomeStateText(key));
+  }
+
+  const golden = (got, want) => {
+    if (got !== want) error("metronome golden", `expected "${want}", got "${got}"`);
+  };
+  golden(AGR.render.metronomeStatus(tempo.sanitize(null), false),
+    "Stopped. Set to 100 beats per minute. 4 beats per bar, first beat accented. One click per beat.");
+  golden(AGR.render.metronomeStatus(tempo.sanitize({ bpm: 120, subdivision: 3, accent: false,
+    trainer: { enabled: true, step: 5, everyBars: 4, targetBpm: 160 } }), true),
+    "Running at 120 beats per minute. 4 beats per bar, no accent. Three clicks per beat, triplets. " +
+    "Speed trainer: faster by 5 beats per minute every 4 bars, until 160 beats per minute.");
+  golden(AGR.render.metronomeStatus(tempo.sanitize({ bpm: 160, beatsPerBar: 3, subdivision: 2,
+    trainer: { enabled: true, step: 1, everyBars: 8, targetBpm: 160 } }), true),
+    "Running at 160 beats per minute. 3 beats per bar, first beat accented. Two clicks per beat, eighth notes. " +
+    "Speed trainer: the tempo is already at or above the target of 160 beats per minute, so it stays as it is.");
+  golden(AGR.render.metronomeStatus(tempo.sanitize({ bpm: 90, subdivision: 4,
+    trainer: { enabled: true, step: 1, everyBars: 2, targetBpm: 100 } }), false),
+    "Stopped. Set to 90 beats per minute. 4 beats per bar, first beat accented. Four clicks per beat, sixteenth notes. " +
+    "Speed trainer: faster by 1 beat per minute every 2 bars, until 100 beats per minute.");
+  golden(AGR.render.metronomeTapText({ count: 1, bpm: null }), "1 tap so far. Tap again on each beat.");
+  golden(AGR.render.metronomeTapText({ count: 4, bpm: 118 }), "4 taps. Tempo set to 118 beats per minute.");
+  golden(AGR.render.metronomeBeatText({ beat: 3, bar: 12, sub: 1, kind: "beat" }, 4), "Beat 3 of 4. Bar 12.");
+}
+
 // ---------- Summary ----------
 
 const exampleCount = shapes.reduce((n, s) => n + s.examples.length, 0);
 console.log("");
 console.log(`Checked ${fixedChords.length} chords, ${shapes.length} movable shapes, ${exampleCount} shape examples, and ${sweepCount} all-roots sweep positions.`);
 console.log(`Tuner: ${tunerDetectorCases} detection cases, ${tunerGatingChecks} gating steps, and ${tunerPhraseTexts} phrase texts checked.`);
+console.log(`Metronome: ${metronomeTimelineChecks} timeline checks and ${metronomePhraseTexts} phrase texts checked.`);
 console.log(`${errors} error(s), ${warnings} warning(s).`);
 if (errors > 0) {
   process.exitCode = 1;

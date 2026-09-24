@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Metronome — Accessible Guitar Reference</title>
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body data-category="metronome">
+<a class="skip-link" href="#main">Skip to main content</a>
+<header>
+  <p class="site-title">Accessible Guitar Reference</p>
+  <nav aria-labelledby="site-menu-heading">
+    <h2 id="site-menu-heading">Site menu</h2>
+    <ul>
+      <li><a href="index.html">Home</a></li>
+      <li><a href="conventions.html">How to read this site</a></li>
+      <li><a href="fretboard.html">Fretboard</a></li>
+      <li><a href="open-chords.html">Open chords</a></li>
+      <li><a href="power-chords.html">Power chords</a></li>
+      <li><a href="barre-chords.html">Barre chords</a></li>
+      <li><a href="triads.html">Triads</a></li>
+      <li><a href="chord-finder.html">Chord finder</a></li>
+      <li><a href="tuner.html">Tuner</a></li>
+      <li><a href="metronome.html" aria-current="page">Metronome</a></li>
+      <li><a href="settings.html">Settings</a></li>
+    </ul>
+  </nav>
+</header>
+<main id="main">
+  <h1>Metronome</h1>
+  <p>This page plays a steady click at the tempo you choose. It can accent the first beat of each bar, add subdivision clicks between the beats, take its tempo from your tapping, and raise the tempo for you gradually as you practice. The sound is made inside your browser; the page needs no microphone and asks for no permission.</p>
+  <noscript><p>The metronome needs JavaScript to make sound. Please allow JavaScript for this site; it loads no external code.</p></noscript>
+  <p>
+    <button type="button" id="metronome-start" disabled>Start metronome</button>
+    <button type="button" id="metronome-tap" disabled>Tap tempo</button>
+  </p>
+  <p id="metronome-tap-result"></p>
+  <!-- Deliberately not a live region (CLAUDE.md rule 2): the click itself
+       is the feedback. This paragraph states the current settings in plain
+       text for reading on demand, and changes only on the player's own
+       actions and when the speed trainer raises the tempo, never per beat. -->
+  <p id="metronome-status"></p>
+  <!-- Visual only, for sighted helpers: a beat counter that changes on
+       every beat. aria-hidden keeps that churn away from screen readers. -->
+  <p id="metronome-beat" class="beat-indicator" aria-hidden="true"></p>
+  <form id="metronome-form">
+    <fieldset>
+      <legend>Tempo</legend>
+      <p><label for="metronome-bpm">Beats per minute, 30 to 300</label> <input type="number" id="metronome-bpm" name="bpm" min="30" max="300" step="1" inputmode="numeric"></p>
+      <p>
+        <button type="button" data-nudge="-5">Slower by 5</button>
+        <button type="button" data-nudge="-1">Slower by 1</button>
+        <button type="button" data-nudge="1">Faster by 1</button>
+        <button type="button" data-nudge="5">Faster by 5</button>
+      </p>
+    </fieldset>
+    <fieldset>
+      <legend>Beats</legend>
+      <p><label for="metronome-beats">Beats per bar</label>
+        <select id="metronome-beats" name="beatsPerBar">
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4" selected>4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+          <option value="7">7</option>
+          <option value="8">8</option>
+        </select></p>
+      <p><label><input type="checkbox" id="metronome-accent" name="accent" checked> Accent the first beat of each bar</label></p>
+      <p><label for="metronome-subdivision">Clicks per beat</label>
+        <select id="metronome-subdivision" name="subdivision">
+          <option value="1" selected>One, the beat only</option>
+          <option value="2">Two, eighth notes</option>
+          <option value="3">Three, triplets</option>
+          <option value="4">Four, sixteenth notes</option>
+        </select></p>
+    </fieldset>
+    <fieldset>
+      <legend>Sound</legend>
+      <p><label for="metronome-sound">Click sound</label>
+        <select id="metronome-sound" name="sound">
+          <option value="click" selected>Click</option>
+          <option value="beep">Beep</option>
+          <option value="wood">Wood block</option>
+        </select></p>
+      <p><label for="metronome-volume">Volume, 0 to 100</label> <input type="range" id="metronome-volume" name="volume" min="0" max="100" step="5"></p>
+    </fieldset>
+    <fieldset>
+      <legend>Speed trainer</legend>
+      <p><label><input type="checkbox" id="metronome-trainer" name="trainerEnabled"> Raise the tempo automatically while running</label></p>
+      <p><label for="metronome-trainer-step">Faster by</label>
+        <select id="metronome-trainer-step" name="trainerStep">
+          <option value="1">1 beat per minute</option>
+          <option value="2">2 beats per minute</option>
+          <option value="5" selected>5 beats per minute</option>
+          <option value="10">10 beats per minute</option>
+        </select></p>
+      <p><label for="metronome-trainer-every">Every</label>
+        <select id="metronome-trainer-every" name="trainerEvery">
+          <option value="2">2 bars</option>
+          <option value="4" selected>4 bars</option>
+          <option value="8">8 bars</option>
+          <option value="16">16 bars</option>
+        </select></p>
+      <p><label for="metronome-trainer-target">Until the tempo reaches, in beats per minute</label> <input type="number" id="metronome-trainer-target" name="trainerTarget" min="30" max="300" step="1" inputmode="numeric"></p>
+    </fieldset>
+  </form>
+
+  <h2>How to use it</h2>
+  <p>Press Start metronome and the click begins at once. The same button is then named Stop metronome, and pressing it stops the click. Every setting on this page takes effect immediately, whether the click is running or not. The paragraph after the buttons always states the current settings in words, so you can check them whenever you like; nothing on this page is announced on its own. Your settings are saved in this browser, on this device, and are the same the next time you open the page.</p>
+  <p>The tempo is in beats per minute. Type a number from 30 to 300 into the tempo field, or use the Slower and Faster buttons to move it by 1 or by 5. A tempo typed outside that range is brought to the nearest end of it. Beats per bar sets how often the accent returns: choose 4 for most rock, pop, and blues, 3 for a waltz, and 6 or 2 to taste. The accented first beat is higher and louder than the other beats, so a bar is easy to count. Clicks per beat adds quieter, lower clicks between the beats: two for eighth notes, three for triplets and the shuffle feel, four for sixteenth notes. Three click sounds are offered, and the volume slider sets how loud they are; if the click cannot be heard over the guitar, an amplifier for the guitar or headphones for the click both help.</p>
+
+  <h2>Tap tempo</h2>
+  <p>If you know how a song feels but not its number, press Tap tempo in time with the music, at least twice. The metronome takes the average of your recent taps as the tempo, and the result is stated in words after the buttons, for example: 4 taps. Tempo set to 118 beats per minute. Taps more than two seconds apart start a fresh count. Tapping works while the click is running, too: the click simply follows your new tempo.</p>
+
+  <h2>Speed trainer</h2>
+  <p>The speed trainer raises the tempo a little at a time while you play, which is the classic way to bring a passage to speed without losing cleanliness. Choose how many beats per minute to add, how many bars to wait between each raise, and the tempo to stop at. For example: faster by 5 beats per minute every 4 bars, until 160. The tempo field and the settings paragraph change as the tempo rises, so a re-read tells you where you are. When the tempo reaches the target it holds there, and it stays at the raised value after you stop, so the next start begins from wherever you finished. Clear the check box to keep a fixed tempo.</p>
+
+  <h2>Practice notes</h2>
+  <p>A metronome does its best work slower than feels comfortable. Choose a tempo at which every note is clean, then let the speed trainer bring the tempo higher a few beats at a time. Subdivision clicks steady a strumming hand: with two clicks per beat, alternate strokes fall on the beat and between the beats. For a blues shuffle, set three clicks per beat and play on the first and third click of each beat.</p>
+</main>
+<footer>
+  <p>Accessible Guitar Reference — text-first guitar guides and tools for blind and visually impaired players.</p>
+</footer>
+<!-- Classic scripts on purpose (the site works when opened straight from disk).
+     Order matters: data, then settings, then tempo and renderer, then the
+     metronome engine, then page glue. -->
+<script src="data/notes.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/tempo.js"></script>
+<script src="js/renderer.js"></script>
+<script src="js/metronome.js"></script>
+<script src="js/page.js"></script>
+</body>
+</html>
