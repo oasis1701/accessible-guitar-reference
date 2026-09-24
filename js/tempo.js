@@ -12,7 +12,7 @@ globalThis.AGR = globalThis.AGR || {};
   var AGR = globalThis.AGR;
 
   var MIN_BPM = 30;
-  var MAX_BPM = 300;
+  var MAX_BPM = 500;
   var MIN_BEATS = 2;
   var MAX_BEATS = 8;
   var SUBDIVISIONS = [1, 2, 3, 4];   // clicks per beat
@@ -65,7 +65,7 @@ globalThis.AGR = globalThis.AGR || {};
   // A complete, valid config from anything: a stored object, a form patch,
   // garbage, or nothing. Missing or invalid fields fall back to base (the
   // previous config), or to DEFAULTS when no base is given. Numbers are
-  // rounded and clamped, so a typed 500 becomes 300 and a typed 0 becomes 30.
+  // rounded and clamped, so a typed 900 becomes 500 and a typed 0 becomes 30.
   function sanitize(raw, base) {
     var fallback = base || DEFAULTS;
     var source = raw && typeof raw === "object" ? raw : {};

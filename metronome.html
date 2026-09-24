@@ -47,7 +47,7 @@
   <form id="metronome-form">
     <fieldset>
       <legend>Tempo</legend>
-      <p><label for="metronome-bpm">Beats per minute, 30 to 300</label> <input type="number" id="metronome-bpm" name="bpm" min="30" max="300" step="1" inputmode="numeric"></p>
+      <p><label for="metronome-bpm">Beats per minute, 30 to 500</label> <input type="number" id="metronome-bpm" name="bpm" min="30" max="500" step="1" inputmode="numeric"></p>
       <p>
         <button type="button" data-nudge="-5">Slower by 5</button>
         <button type="button" data-nudge="-1">Slower by 1</button>
@@ -104,13 +104,13 @@
           <option value="8">8 bars</option>
           <option value="16">16 bars</option>
         </select></p>
-      <p><label for="metronome-trainer-target">Until the tempo reaches, in beats per minute</label> <input type="number" id="metronome-trainer-target" name="trainerTarget" min="30" max="300" step="1" inputmode="numeric"></p>
+      <p><label for="metronome-trainer-target">Until the tempo reaches, in beats per minute</label> <input type="number" id="metronome-trainer-target" name="trainerTarget" min="30" max="500" step="1" inputmode="numeric"></p>
     </fieldset>
   </form>
 
   <h2>How to use it</h2>
   <p>Press Start metronome and the click begins at once. The same button is then named Stop metronome, and pressing it stops the click. Every setting on this page takes effect immediately, whether the click is running or not. The paragraph after the buttons always states the current settings in words, so you can check them whenever you like; nothing on this page is announced on its own. Your settings are saved in this browser, on this device, and are the same the next time you open the page.</p>
-  <p>The tempo is in beats per minute. Type a number from 30 to 300 into the tempo field, or use the Slower and Faster buttons to move it by 1 or by 5. A tempo typed outside that range is brought to the nearest end of it. Beats per bar sets how often the accent returns: choose 4 for most rock, pop, and blues, 3 for a waltz, and 6 or 2 to taste. The accented first beat is higher and louder than the other beats, so a bar is easy to count. Clicks per beat adds quieter, lower clicks between the beats: two for eighth notes, three for triplets and the shuffle feel, four for sixteenth notes. Four click sounds are offered, and the volume slider sets how loud they are; if the click cannot be heard over the guitar, an amplifier for the guitar or headphones for the click both help.</p>
+  <p>The tempo is in beats per minute. Type a number from 30 to 500 into the tempo field, or use the Slower and Faster buttons to move it by 1 or by 5. A tempo typed outside that range is brought to the nearest end of it. Beats per bar sets how often the accent returns: choose 4 for most rock, pop, and blues, 3 for a waltz, and 6 or 2 to taste. The accented first beat is higher and louder than the other beats, so a bar is easy to count. Clicks per beat adds quieter, lower clicks between the beats: two for eighth notes, three for triplets and the shuffle feel, four for sixteenth notes. Four click sounds are offered, and the volume slider sets how loud they are; if the click cannot be heard over the guitar, an amplifier for the guitar or headphones for the click both help.</p>
 
   <h2>Tap tempo</h2>
   <p>If you know how a song feels but not its number, press Tap tempo in time with the music, at least twice. The metronome takes the average of your recent taps as the tempo, and the result is stated in words after the buttons, for example: 4 taps. Tempo set to 118 beats per minute. Taps more than two seconds apart start a fresh count. Tapping works while the click is running, too: the click simply follows your new tempo.</p>

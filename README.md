@@ -15,7 +15,7 @@ Chord charts, fretboard diagrams, and video lessons assume you can see them. Thi
 - **Triads** — major and minor three-note shapes, all three inversions, on two string groups.
 - **Chord finder** — pick any root and type (say, G sharp minor) and get every voicing the site knows, ordered along the neck, with positions computed and machine-verified for all twelve roots.
 - **Tuner** — a microphone tuner that names the note it hears and says how many cents too low or too high it is, with spoken updates gated to never talk over the screen reader, and a mute button. Runs entirely in the browser; nothing is recorded or sent anywhere.
-- **Metronome** — a click at 30 to 300 beats per minute with an accented first beat, eighth-note, triplet, and sixteenth-note subdivisions, tap tempo, four sounds, a volume slider, and a speed trainer that raises the tempo every few bars to a target. Synthesized in the browser, with no live region at all: the click is the feedback. Settings are remembered.
+- **Metronome** — a click at 30 to 500 beats per minute with an accented first beat, eighth-note, triplet, and sixteenth-note subdivisions, tap tempo, four sounds, a volume slider, and a speed trainer that raises the tempo every few bars to a target. Synthesized in the browser, with no live region at all: the click is the feedback. Settings are remembered.
 - **Conventions page** — the strict grammar every description follows (higher/lower always mean pitch, muted strings are always explicit, sharps and flats are spelled out).
 - **Settings** — choose the description format (per string, by finger, or prose) and how strings are named (number, note name, or both). Saved in the browser.
 

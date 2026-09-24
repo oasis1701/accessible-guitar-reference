@@ -814,11 +814,11 @@ function runTicks(config, count, startAt) {
     error(c, "garbage must fall back to the defaults");
   }
   const clamped = tempo.sanitize({
-    bpm: "500", beatsPerBar: "1", accent: "false", subdivision: "3", sound: "gong",
+    bpm: "900", beatsPerBar: "1", accent: "false", subdivision: "3", sound: "gong",
     volume: 140, trainer: { enabled: "true", step: "5", everyBars: 9, targetBpm: 0 }
   });
   const wantClamped = {
-    bpm: 300, beatsPerBar: 2, accent: false, subdivision: 3, sound: "click", volume: 100,
+    bpm: 500, beatsPerBar: 2, accent: false, subdivision: 3, sound: "click", volume: 100,
     trainer: { enabled: true, step: 5, everyBars: 4, targetBpm: 30 }
   };
   if (JSON.stringify(clamped) !== JSON.stringify(wantClamped)) {
@@ -871,8 +871,8 @@ function runTicks(config, count, startAt) {
   }
   // Extremes of the tempo range keep exact spacing too.
   const slow = runTicks({ bpm: 30, subdivision: 1 }, 3);
-  const fast = runTicks({ bpm: 300, subdivision: 4 }, 3);
-  if (!nearly(slow[2].time, 4) || !nearly(fast[2].time, 0.1)) {
+  const fast = runTicks({ bpm: 500, subdivision: 4 }, 3);
+  if (!nearly(slow[2].time, 4) || !nearly(fast[2].time, 0.06)) {
     error(c, "extreme tempos must keep exact spacing");
   }
   metronomeTimelineChecks += 2;
@@ -988,7 +988,7 @@ function runTicks(config, count, startAt) {
     error(c, `a long gap must start a fresh count, got ${JSON.stringify(gap.slice(3))}`);
   }
   const fast = run([0, 100, 200]);
-  if (fast[2].bpm !== 300) error(c, "very fast taps must clamp to the top of the range");
+  if (fast[2].bpm !== 500) error(c, "very fast taps must clamp to the top of the range");
   const slow = run([0, 1900, 3800]);
   if (slow[2].bpm !== 32) error(c, `slow taps gave ${slow[2].bpm}, expected 32`);
   const tooSlow = run([0, 1999], { resetMs: 3000 });
@@ -1032,7 +1032,7 @@ function runTicks(config, count, startAt) {
   };
 
   for (const running of [false, true]) {
-    for (const bpm of [30, 100, 159, 160, 300]) {
+    for (const bpm of [30, 100, 159, 160, 300, 500]) {
       for (const beats of [2, 3, 4, 5, 6, 7, 8]) {
         for (const subdivision of tempo.SUBDIVISIONS) {
           for (const accent of [true, false]) {
@@ -1064,7 +1064,7 @@ function runTicks(config, count, startAt) {
   }
 
   for (const count of [1, 2, 3, 9, 40]) {
-    for (const bpm of [null, 30, 118, 300]) {
+    for (const bpm of [null, 30, 118, 500]) {
       const context = `metronome tap text ${count} taps ${bpm}`;
       const text = lintPhrase(context, () => AGR.render.metronomeTapText({ count, bpm }));
       if (text === null) continue;
