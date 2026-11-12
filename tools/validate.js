@@ -17,8 +17,11 @@
 //          announcement gates on scripted timelines; lint every tuner phrase.
 // Phase G: metronome — prove the tick sequencer, the speed trainer, and tap
 //          tempo on scripted timelines; lint every metronome phrase.
+// Phase H: page text — the hand-written text of every HTML page, linted
+//          against the same banned symbols and direction words.
 "use strict";
 
+const fs = require("fs");
 const path = require("path");
 
 // Load the site's own files (classic scripts assigning to globalThis.AGR).
@@ -1110,6 +1113,70 @@ function runTicks(config, count, startAt) {
   golden(AGR.render.metronomeBeatText({ beat: 3, bar: 12, sub: 1, kind: "beat" }, 4), "Beat 3 of 4. Bar 12.");
 }
 
+// ---------- Phase H: page text ----------
+// The hand-written text on every HTML page follows the same grammar as the
+// generated text. The text checked is what a screen reader can reach: the
+// page title, the body text, and the aria-label, alt, title, and placeholder
+// attributes. Scripts, styles, and comments are skipped. The one sanctioned
+// direction word is the sentence in conventions.html that names it; if that
+// sentence changes, this check fails until the exception is updated.
+
+let pageTextFiles = 0;
+{
+  const ROOT = path.join(__dirname, "..");
+  const PAGE_TEXT_ALLOWED = [
+    { file: "conventions.html", text: "This site never says up, or the word that is its opposite" }
+  ];
+
+  const decodeEntities = (s) => s
+    .replace(/&#x([0-9a-f]+);/gi, (m, hex) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (m, dec) => String.fromCodePoint(parseInt(dec, 10)))
+    .replace(/&nbsp;/g, " ")
+    .replace(/&quot;/g, "\"")
+    .replace(/&apos;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&");
+
+  const readableText = (html) => {
+    const markup = html
+      .replace(/<!--[\s\S]*?-->/g, " ")
+      .replace(/<script\b[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style\b[\s\S]*?<\/style>/gi, " ");
+    const attributes = [];
+    markup.replace(/\s(?:aria-label|alt|title|placeholder)\s*=\s*"([^"]*)"/gi, (m, value) => {
+      attributes.push(value);
+      return m;
+    });
+    const body = markup.replace(/<[^>]*>/g, " ");
+    return decodeEntities([body, ...attributes].join(" ")).replace(/\s+/g, " ").trim();
+  };
+
+  const scan = (file, text, pattern, what) => {
+    const global = new RegExp(pattern.source, pattern.flags.includes("g") ? pattern.flags : pattern.flags + "g");
+    let match;
+    while ((match = global.exec(text)) !== null) {
+      const around = text.slice(Math.max(0, match.index - 40), match.index + match[0].length + 40);
+      error(`page text ${file}`, `banned ${what} "${match[0]}" in: "...${around}..."`);
+    }
+  };
+
+  const files = fs.readdirSync(ROOT).filter((name) => name.endsWith(".html")).sort();
+  if (files.length === 0) error("page text", "no HTML pages found");
+  for (const file of files) {
+    pageTextFiles += 1;
+    let text = readableText(fs.readFileSync(path.join(ROOT, file), "utf8"));
+    for (const allowed of PAGE_TEXT_ALLOWED.filter((a) => a.file === file)) {
+      if (!text.includes(allowed.text)) {
+        error(`page text ${file}`, `the sanctioned direction-word sentence is missing or changed: "${allowed.text}"`);
+      }
+      text = text.split(allowed.text).join(" ");
+    }
+    scan(file, text, BANNED_GLYPHS, "symbol");
+    scan(file, text, BANNED_WORDS, "direction word");
+  }
+}
+
 // ---------- Summary ----------
 
 const exampleCount = shapes.reduce((n, s) => n + s.examples.length, 0);
@@ -1117,6 +1184,7 @@ console.log("");
 console.log(`Checked ${fixedChords.length} chords, ${shapes.length} movable shapes, ${exampleCount} shape examples, and ${sweepCount} all-roots sweep positions.`);
 console.log(`Tuner: ${tunerDetectorCases} detection cases, ${tunerGatingChecks} gating steps, and ${tunerPhraseTexts} phrase texts checked.`);
 console.log(`Metronome: ${metronomeTimelineChecks} timeline checks and ${metronomePhraseTexts} phrase texts checked.`);
+console.log(`Page text: ${pageTextFiles} HTML pages checked.`);
 console.log(`${errors} error(s), ${warnings} warning(s).`);
 if (errors > 0) {
   process.exitCode = 1;

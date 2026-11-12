@@ -23,8 +23,7 @@ Accessible Guitar Reference: a text-first guitar reference website for blind and
 node tools/validate.js
 ```
 
-Must exit clean. It verifies the schema, recomputes every chord's real pitches to prove the declared quality and inversion, sweeps every movable shape across all 12 roots, lints all generated text in every settings combination against the grammar above, proves the tuner (Phase F): detector accuracy on synthesized waves, announcement gating on scripted timelines, and every tuner phrase, and proves the metronome (Phase G): the tick sequencer, speed trainer, and tap tempo on scripted timelines, and every metronome phrase.
-
+Must exit clean. It verifies the schema, recomputes every chord's real pitches to prove the declared quality and inversion, sweeps every movable shape across all 12 roots, lints all generated text in every settings combination against the grammar above, proves the tuner (Phase F): detector accuracy on synthesized waves, announcement gating on scripted timelines, and every tuner phrase, and proves the metronome (Phase G): the tick sequencer, speed trainer, and tap tempo on scripted timelines, and every metronome phrase. Phase H lints the hand-written text of every HTML page (title, body text, and aria-label, alt, title, and placeholder attributes) for the banned symbols and direction words. Its one exception is the conventions.html sentence that names the word up on purpose, pinned by its exact text.
 ## Architecture map
 
 - `data/*.js` — chords and shapes assigning to `globalThis.AGR`. Schema exemplars: `open-chords.js` (fixed chords), `triads.js` (movable anchor-plus-offset shapes with roles), `barre-chords.js` (barres annotation; per-string entries stay the source of truth), `octaves.js`.
@@ -37,6 +36,7 @@ Must exit clean. It verifies the schema, recomputes every chord's real pitches t
 - `js/page.js` — browser-only DOM glue, dispatched by `<body data-category>`.
 - HTML pages — one h3 per chord or shape sitewide (screen-reader heading-key navigation), a real list as table of contents, native form elements only, skip link, landmarks, and a visible level 2 "Site menu" heading naming the site navigation (maintainer decision, 2026-08-10; the page h1 stays the only level 1).
 - `conventions.html` — the reader-facing grammar contract. Keep it in sync with renderer changes.
+- Page prose — written to the maintainer's writing skill, so ordinary sentences carry no colons and headings never start with What, How, Why, When, or Where. Two maintainer decisions (2026-11-11) override that: a colon stays before a verbatim sample of what the site says, such as "for example: 5th string (A)", because samples carry no quotation marks and the colon is the only audible marker; and the page title "How to read this site" stays.
 
 ## Deploy
 

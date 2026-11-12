@@ -117,7 +117,7 @@ globalThis.AGR = globalThis.AGR || {};
         { string: 2, action: "open" },
         { string: 1, action: "open" }
       ],
-      tips: "Often the first chord people learn: two fingers, and every string is played."
+      tips: "Often the first chord people learn. It takes two fingers, and every string is played."
     },
     {
       id: "d-minor",
@@ -194,7 +194,7 @@ globalThis.AGR = globalThis.AGR || {};
         { string: 2, action: "fret", fret: 1, finger: "index" },
         { string: 1, action: "fret", fret: 2, finger: "ring" }
       ],
-      tips: "The mirror image of D major: the index finger is now the one closest to the nut."
+      tips: "The mirror image of D major, with the index finger now the one closest to the nut."
     },
     {
       id: "e7",
