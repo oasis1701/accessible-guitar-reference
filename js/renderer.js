@@ -101,13 +101,16 @@ globalThis.AGR = globalThis.AGR || {};
   // Per-string entries stay the single source of truth (every covered string
   // still records its fret and finger); the barres annotation only shapes the prose.
 
+  function inBarre(b, entry) {
+    if (entry.action !== "fret") return false;
+    var sameFret = typeof b.fret === "number" ? entry.fret === b.fret : entry.offset === b.offset;
+    return entry.finger === b.finger && sameFret &&
+      entry.string <= b.fromString && entry.string >= b.toString;
+  }
+
   function isCoveredByBarre(item, entry) {
-    if (!item.barres || entry.action !== "fret") return false;
-    return item.barres.some(function (b) {
-      var sameFret = typeof b.fret === "number" ? entry.fret === b.fret : entry.offset === b.offset;
-      return entry.finger === b.finger && sameFret &&
-        entry.string <= b.fromString && entry.string >= b.toString;
-    });
+    if (!item.barres) return false;
+    return item.barres.some(function (b) { return inBarre(b, entry); });
   }
 
   function barreSpan(b, naming) {
@@ -120,7 +123,8 @@ globalThis.AGR = globalThis.AGR || {};
   function barreAt(b) {
     if (typeof b.fret === "number") return "at the " + ordinal(b.fret) + " fret";
     if (b.offset === 0) return "at the root fret";
-    return "at " + relativeFret({ offset: b.offset });
+    // "two frets lower than the root fret", without a clumsy "at" in front.
+    return relativeFret({ offset: b.offset });
   }
 
   function barreParagraph(item, naming) {
@@ -162,6 +166,21 @@ globalThis.AGR = globalThis.AGR || {};
     return " This note is " + rolePhrase(shape, entry) + ".";
   }
 
+  // "the 3rd string (G) sounds the third", for strings named inside a
+  // sentence rather than on a line of their own.
+  function soundsClause(shape, entry, naming) {
+    return "the " + stringLabel(entry.string, naming) + " sounds " + rolePhrase(shape, entry);
+  }
+
+  // Joins "sounds" clauses. A clause such as "the root again, an octave
+  // higher" carries its own comma, so when one sits before the end of a
+  // longer list, semicolons keep the items apart.
+  function joinClauses(items) {
+    var inner = items.slice(0, -1).some(function (item) { return item.indexOf(",") !== -1; });
+    if (items.length < 3 || !inner) return joinList(items);
+    return items.slice(0, -1).join("; ") + "; and " + items[items.length - 1];
+  }
+
   // --- The three formats. They differ in organization, never in vocabulary. ---
 
   function perStringLines(item, naming, fretText, roleText) {
@@ -178,8 +197,16 @@ globalThis.AGR = globalThis.AGR || {};
   function byFingerLines(item, naming, fretText, roleText) {
     var lines = [];
     (item.barres || []).forEach(function (b) {
-      lines.push(capitalize(fingerPhrase(b.finger)) + ": barre " + barreSpan(b, naming) +
-        ", " + barreAt(b) + ".");
+      var line = capitalize(fingerPhrase(b.finger)) + ": barre " + barreSpan(b, naming) +
+        ", " + barreAt(b) + ".";
+      // Movable shapes name the chord tone of every string under the barre,
+      // as the other finger lines do (maintainer request, 2026-11-13).
+      if (roleText) {
+        item.strings.forEach(function (entry) {
+          if (inBarre(b, entry)) line += " " + capitalize(soundsClause(item, entry, naming)) + ".";
+        });
+      }
+      lines.push(line);
     });
     FINGER_ORDER.forEach(function (finger) {
       item.strings.forEach(function (entry) {
@@ -222,9 +249,12 @@ globalThis.AGR = globalThis.AGR || {};
           " with your " + fingerPhrase(entry.finger);
       })) + ".");
     }
-    if (isRelative && fretted.length > 0) {
-      sentences.push(capitalize(joinList(fretted.map(function (entry) {
-        return "the " + stringLabel(entry.string, naming) + " sounds " + rolePhrase(item, entry);
+    // Every fretted string names its chord tone here, barred strings
+    // included (maintainer request, 2026-11-13).
+    var allFretted = byAction(item, "fret");
+    if (isRelative && allFretted.length > 0) {
+      sentences.push(capitalize(joinClauses(allFretted.map(function (entry) {
+        return soundsClause(item, entry, naming);
       }))) + ".");
     }
     var open = byAction(item, "open");
@@ -270,9 +300,10 @@ globalThis.AGR = globalThis.AGR || {};
   function describeShapeRelative(shape, settings) {
     var naming = settings.stringNaming;
     var anchor = shape.strings.filter(function (entry) { return entry.anchor; })[0];
-    var intro = "This shape is movable. The root note sits on the " +
-      stringLabel(anchor.string, naming) +
-      "; the fret you place it on is called the root fret, and the shape takes its name from that note.";
+    // Kept short on purpose: it repeats under every movable shape, and the
+    // page introductions and conventions.html explain the root fret
+    // (maintainer decision, 2026-11-13).
+    var intro = "The root is on the " + stringLabel(anchor.string, naming) + ".";
     if (settings.format === "prose") {
       return { kind: "prose", intro: intro, text: proseSentences(shape, naming, true), tips: shape.tips || "" };
     }

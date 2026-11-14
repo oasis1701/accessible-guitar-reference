@@ -12,7 +12,7 @@ Chord charts, fretboard diagrams, and video lessons all assume you can see them,
 - **Open chords** — the 14 everyday "cowboy" chords (C, A, G, E, D, the minors, the dominant 7ths).
 - **Power chords** — open E5, A5, D5, plus movable two- and three-finger shapes for any root.
 - **Barre chords** — the movable E and A shapes, major and minor, with barres described in full sentences.
-- **Triads** — major and minor three-note shapes, all three inversions, on two string groups.
+- **Triads** — major and minor three-note shapes, all three inversions, on strings 1 to 3, 2 to 4, 3 to 5, and 4 to 6.
 - **Chord finder** — pick any root and type (say, G sharp minor) and get every voicing the site knows, ordered along the neck, with positions computed and machine-verified for all twelve roots.
 - **Tuner** — a microphone tuner that names the note it hears and says how many cents too low or too high it is, with spoken updates gated to never talk over the screen reader, and a mute button. Runs entirely in the browser; nothing is recorded or sent anywhere.
 - **Metronome** — a click at 30 to 500 beats per minute with an accented first beat, eighth-note, triplet, and sixteenth-note subdivisions, tap tempo, four sounds, a volume slider, and a speed trainer that raises the tempo every few bars to a target. Synthesized in the browser, with no live region at all, because the click is the feedback. Keeps playing on a locked phone, with lock-screen controls. Settings are remembered.

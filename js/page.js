@@ -63,7 +63,7 @@
   function appendShape(container, toc, shape) {
     container.appendChild(el("h3", shape.name, { id: shape.id }));
     appendNodes(container, descriptionNodes(AGR.render.describeShapeRelative(shape, settings)));
-    container.appendChild(el("h4", "Examples"));
+    container.appendChild(el("h4", shape.examples.length === 1 ? "Example" : "Examples"));
     var anchor = shape.strings.filter(function (entry) { return entry.anchor; })[0];
     shape.examples.forEach(function (example) {
       var chord = AGR.render.instantiateShape(shape, example);
@@ -103,7 +103,9 @@
   function renderTriads() {
     var groups = [
       ["123", "Triads on strings 1 to 3"],
-      ["234", "Triads on strings 2 to 4"]
+      ["234", "Triads on strings 2 to 4"],
+      ["345", "Triads on strings 3 to 5"],
+      ["456", "Triads on strings 4 to 6"]
     ];
     groups.forEach(function (group) {
       content().appendChild(el("h2", group[1]));

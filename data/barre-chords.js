@@ -31,7 +31,7 @@ globalThis.AGR = globalThis.AGR || {};
         { root: "F", anchorFret: 1 },
         { root: "A", anchorFret: 5 }
       ],
-      tips: "This is the open E major grip with your index finger replacing the nut. Press the barre with the bony edge of the finger, close behind the fret wire, and let your thumb rest on the back of the neck."
+      tips: "This is the open E major grip with your index finger replacing the nut."
     },
     {
       id: "barre-e-minor",
@@ -69,9 +69,9 @@ globalThis.AGR = globalThis.AGR || {};
       strings: [
         { string: 6, action: "mute" },
         { string: 5, action: "fret", offset: 0, finger: "index", role: "root", anchor: true },
-        { string: 4, action: "fret", offset: 2, finger: "middle", role: "fifth" },
-        { string: 3, action: "fret", offset: 2, finger: "ring", role: "root" },
-        { string: 2, action: "fret", offset: 2, finger: "pinky", role: "third" },
+        { string: 4, action: "fret", offset: 2, finger: "ring", role: "fifth" },
+        { string: 3, action: "fret", offset: 2, finger: "pinky", role: "root" },
+        { string: 2, action: "fret", offset: 2, finger: "middle", role: "third" },
         { string: 1, action: "fret", offset: 0, finger: "index", role: "fifth" }
       ],
       fretRange: [1, 12],
@@ -79,7 +79,7 @@ globalThis.AGR = globalThis.AGR || {};
         { root: "B", anchorFret: 2 },
         { root: "C", anchorFret: 3 }
       ],
-      tips: "The open A major grip with a barre. Many players flatten the ring finger across the 4th, 3rd, and 2nd strings instead of using three separate fingers; both are correct."
+      tips: "The open A major grip with a barre. The ring and pinky fingers sit exactly where they sit in the minor A shape, so switching between major and minor moves only the middle finger, by one fret. Flattening the ring finger across the 4th, 3rd, and 2nd strings also works."
     },
     {
       id: "barre-a-minor",

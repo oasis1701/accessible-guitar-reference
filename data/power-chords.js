@@ -23,7 +23,7 @@ globalThis.AGR = globalThis.AGR || {};
         { string: 2, action: "mute" },
         { string: 1, action: "mute" }
       ],
-      tips: "Let the tip of your index finger rest lightly against the 4th string to keep it quiet."
+      tips: "Let the underside of your index finger rest lightly against the 4th string to keep it quiet."
     },
     {
       id: "a5",
