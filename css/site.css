@@ -1,28 +1,42 @@
-/* site.css — deliberately simple. Readable defaults for sighted helpers,
+/* site.css — readable defaults for sighted helpers and low-vision players,
    strong focus indicators for keyboard users, and both color schemes.
-   No information on this site is conveyed by styling alone. */
+   No information on this site is conveyed by styling alone: every state a
+   style shows (current page, pressed button) is also in the markup as
+   aria-current or aria-pressed, and the .entry panels that page.js draws
+   around each chord are role-less divs that screen readers never see. */
 
 :root {
   color-scheme: light dark;
   --bg: #ffffff;
+  --surface: #f3f5f8;
   --text: #1a1a1a;
   --muted: #444444;
   --accent: #0b57a4;
-  --border: #cccccc;
+  /* Decorative lines only: rules under headings, panel outlines. */
+  --border: #cfd5dc;
+  /* Edges that identify a control or a card. Kept at 3 to 1 or better
+     against both --bg and --surface (WCAG non-text contrast). */
+  --control-border: #767676;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #14161a;
+    --surface: #1c1f25;
     --text: #eceff2;
     --muted: #b8bec5;
     --accent: #7db6e8;
-    --border: #45494f;
+    --border: #3d434b;
+    --control-border: #8a9099;
   }
 }
 
 * {
   box-sizing: border-box;
+}
+
+html {
+  border-top: 4px solid var(--accent);
 }
 
 body {
@@ -34,6 +48,9 @@ body {
   line-height: 1.65;
   background: var(--bg);
   color: var(--text);
+  /* Long words such as Accessibility wrap instead of pushing the page
+     sideways when text is enlarged on a narrow screen. */
+  overflow-wrap: break-word;
 }
 
 /* Skip link: visually hidden until focused. */
@@ -57,16 +74,33 @@ body {
   outline-offset: 2px;
 }
 
+/* Header band. The box-shadow and clip-path stretch the tinted background
+   to the full window width without any extra markup. */
 header {
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 0.75rem;
-  margin-bottom: 1rem;
+  background: var(--surface);
+  box-shadow: 0 0 0 100vmax var(--surface);
+  clip-path: inset(0 -100vmax);
+  margin: -1rem 0 1.5rem 0;
+  padding: 1.25rem 0 1rem 0;
 }
 
 .site-title {
-  font-weight: bold;
-  font-size: 1.25rem;
-  margin: 0 0 0.5rem 0;
+  font-weight: 700;
+  font-size: 1.5rem;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  margin: 0 0 0.75rem 0;
+}
+
+/* The site menu heading exists for heading navigation and stays visible;
+   it reads as a small label above the menu. */
+header nav h2 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin: 0 0 0.4rem 0;
+  padding: 0;
+  border: none;
 }
 
 nav ul {
@@ -82,17 +116,38 @@ nav a {
   color: var(--accent);
 }
 
-nav a[aria-current="page"] {
-  font-weight: bold;
+/* Site menu items: rounded highlights, compact enough that the menu wraps
+   onto as few rows on a phone as plain links did. */
+header nav ul {
+  gap: 0.3rem 0.4rem;
+}
+
+header nav li {
+  margin: 0;
+}
+
+header nav a {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 0.4rem;
+  font-size: 1rem;
+  line-height: 1.5;
   text-decoration: none;
 }
 
-/* The site menu heading exists for heading navigation; keep it modest,
-   sized like the table-of-contents headings. */
-header nav h2 {
-  font-size: 1.1rem;
-  margin: 0 0 0.5rem 0;
-  border: none;
+header nav a:hover {
+  text-decoration: underline;
+  background: var(--bg);
+}
+
+header nav a[aria-current="page"] {
+  background: var(--accent);
+  color: var(--bg);
+  font-weight: 700;
+}
+
+header nav a[aria-current="page"]:hover {
+  text-decoration: none;
 }
 
 main a {
@@ -100,24 +155,27 @@ main a {
 }
 
 h1 {
-  font-size: 1.75rem;
-  line-height: 1.3;
+  font-size: 2rem;
+  line-height: 1.25;
+  margin: 0.5rem 0 1rem 0;
 }
 
 h2 {
-  font-size: 1.4rem;
+  font-size: 1.5rem;
+  line-height: 1.3;
   margin-top: 2.5rem;
   border-bottom: 1px solid var(--border);
-  padding-bottom: 0.25rem;
+  padding-bottom: 0.3rem;
 }
 
 h3 {
-  font-size: 1.2rem;
+  font-size: 1.35rem;
+  line-height: 1.3;
   margin-top: 2rem;
 }
 
 h4 {
-  font-size: 1.05rem;
+  font-size: 1.1rem;
   margin-top: 1.25rem;
 }
 
@@ -129,11 +187,88 @@ li {
   margin: 0.2rem 0;
 }
 
+/* Link cards: a list where each item is a link on one line and a sentence
+   describing it on the next. The list keeps role="list" in the markup so
+   Safari still announces it as a list once the bullets are gone. */
+.link-cards {
+  list-style: none;
+  margin: 1.25rem 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  gap: 1rem;
+}
+
+.link-cards li {
+  position: relative;
+  margin: 0;
+  padding: 0.9rem 1.1rem 1rem 1.1rem;
+  border: 1px solid var(--control-border);
+  border-radius: 0.6rem;
+  background: var(--bg);
+}
+
+.link-cards p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.link-cards .link-card-name {
+  margin: 0 0 0.35rem 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--text);
+}
+
+.link-card-name a {
+  text-decoration: none;
+}
+
+.link-card-name a:hover {
+  text-decoration: underline;
+}
+
+/* Only the link name is the click target. Stretching the link over the
+   whole card would block selecting the description text and make mouse
+   and touch exploration read the link name over the description.
+
+   Keyboard focus outlines the whole card where :has() is supported;
+   elsewhere the link keeps its own outline. */
+@supports selector(:has(a)) {
+  .link-cards li:has(a:focus-visible) {
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .link-card-name a:focus-visible {
+    outline: none;
+  }
+}
+
+/* One panel per chord, shape, voicing, or fretboard string. */
+.entry {
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  padding: 0 1.25rem 1rem 1.25rem;
+  margin: 1.25rem 0;
+  background: var(--bg);
+}
+
+.entry > :first-child {
+  margin-top: 1rem;
+}
+
+.entry > :last-child {
+  margin-bottom: 0;
+}
+
 .toc {
   border: 1px solid var(--border);
-  border-radius: 0.5rem;
+  border-radius: 0.6rem;
   padding: 0.75rem 1rem;
   margin: 1.5rem 0;
+  background: var(--surface);
 }
 
 .toc h2 {
@@ -152,9 +287,19 @@ li {
   color: var(--muted);
 }
 
+/* Form controls shrink to the screen instead of pushing it sideways when
+   text is enlarged on a narrow screen. A fieldset otherwise refuses to be
+   narrower than its widest control. */
+select,
+button,
+input[type="number"] {
+  max-width: 100%;
+}
+
 fieldset {
+  min-width: 0;
   border: 1px solid var(--border);
-  border-radius: 0.5rem;
+  border-radius: 0.6rem;
   margin: 1.5rem 0;
   padding: 0.75rem 1rem;
 }
@@ -177,14 +322,27 @@ input[type="radio"] {
 select {
   font: inherit;
   padding: 0.3rem 0.5rem;
+  border: 1px solid var(--control-border);
   border-radius: 0.35rem;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* Disabled controls drop their control edge and take the tinted fill, so
+   they look inactive. Disabled controls are exempt from contrast rules. */
+select:disabled,
+input[type="number"]:disabled,
+button:disabled {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--muted);
 }
 
 button {
   font: inherit;
   font-weight: bold;
   padding: 0.35rem 0.9rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--control-border);
   border-radius: 0.35rem;
   background: var(--bg);
   color: var(--accent);
@@ -194,11 +352,8 @@ button {
 /* The pressed state lives in aria-pressed; the fill only mirrors it. */
 button[aria-pressed="true"] {
   background: var(--accent);
+  border-color: var(--accent);
   color: var(--bg);
-}
-
-button:disabled {
-  color: var(--muted);
 }
 
 #finder-form label {
@@ -217,7 +372,10 @@ footer {
 input[type="number"] {
   font: inherit;
   padding: 0.3rem 0.5rem;
+  border: 1px solid var(--control-border);
   border-radius: 0.35rem;
+  background: var(--bg);
+  color: var(--text);
   width: 6.5rem;
 }
 
@@ -247,4 +405,33 @@ input[type="checkbox"] {
 
 .beat-indicator.accent {
   color: var(--accent);
+}
+
+/* Windows high contrast and other forced color modes replace every color
+   above with the user's own. Keep the current page and the pressed button
+   visibly filled, and give the header band an edge since its tint is gone. */
+@media (forced-colors: active) {
+  header nav a[aria-current="page"],
+  button[aria-pressed="true"] {
+    forced-color-adjust: none;
+    background: Highlight;
+    border-color: Highlight;
+    color: HighlightText;
+  }
+
+  /* forced-color-adjust also exempts the focus outline, so give it a
+     system color instead of the author accent. */
+  header nav a[aria-current="page"]:focus-visible,
+  button[aria-pressed="true"]:focus-visible {
+    outline-color: CanvasText;
+  }
+
+  /* A focused card's outline must differ from its CanvasText border. */
+  .link-cards li:has(a:focus-visible) {
+    outline-color: Highlight;
+  }
+
+  header {
+    border-bottom: 1px solid CanvasText;
+  }
 }

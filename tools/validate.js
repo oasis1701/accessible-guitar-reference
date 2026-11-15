@@ -332,6 +332,56 @@ shapes.forEach((shape) => {
   });
 });
 
+// A string that must stay silent but lies under a barre says both things on
+// its per-string line, so the barre sentence and the line agree. Any other
+// silent string says only "do not play."
+function checkSilentStringLines(context, item, desc, naming) {
+  item.strings.forEach((entry, i) => {
+    if (entry.action !== "mute") return;
+    const underBarre = (item.barres || []).some((b) =>
+      entry.string <= b.fromString && entry.string >= b.toString);
+    const expected = AGR.render.stringLabel(entry.string, naming) +
+      (underBarre ? ": covered by the barre, do not play." : ": do not play.");
+    if (desc.lines[i] !== expected) {
+      error(context, `string ${entry.string} line should read "${expected}", found "${desc.lines[i]}"`);
+    }
+  });
+}
+
+NAMINGS.forEach((naming) => {
+  const settings = { format: "per-string", stringNaming: naming };
+  fixedChords.forEach((chord) => {
+    checkSilentStringLines(`chord ${chord.id} [${naming}]`, chord, AGR.render.describeChord(chord, settings), naming);
+  });
+  shapes.forEach((shape) => {
+    checkSilentStringLines(`shape ${shape.id} [${naming}]`, shape,
+      AGR.render.describeShapeRelative(shape, settings), naming);
+    shape.examples.forEach((ex) => {
+      const chord = AGR.render.instantiateShape(shape, ex);
+      checkSilentStringLines(`shape ${shape.id} example ${ex.root}@${ex.anchorFret} [${naming}]`, chord,
+        AGR.render.describeChord(chord, settings), naming);
+    });
+  });
+});
+
+// The A shape barres cover all six strings, so the index finger stays where
+// it is when the hand changes to an E shape at the same fret, and the 6th
+// string is held by the barre but not played (maintainer decision,
+// 2026-11-15). The tip names the five-string alternative.
+["barre-a-major", "barre-a-minor"].forEach((id) => {
+  const shape = AGR.barreShapes.find((s) => s.id === id);
+  if (!shape) {
+    error("A shape barre", `${id} is missing`);
+    return;
+  }
+  const b = (shape.barres || [])[0];
+  if (!b || b.fromString !== 6 || b.toString !== 1) {
+    error(id, "the barre must cover all six strings, from the 6th through the 1st");
+  }
+  if (shape.strings[0].action !== "mute") error(id, "the 6th string must not be played");
+  if (!/five strings/.test(shape.tips || "")) error(id, "the tip must name the five-string alternative");
+});
+
 // ---------- Phase D: all-roots sweep ----------
 // Instantiate every movable shape at every one of the 12 roots, at every
 // position the chord finder would compute, and prove the music and the
@@ -1120,6 +1170,9 @@ function runTicks(config, count, startAt) {
 // attributes. Scripts, styles, and comments are skipped. The one sanctioned
 // direction word is the sentence in conventions.html that names it; if that
 // sentence changes, this check fails until the exception is updated.
+// The add-on keyboard guide may also name the keys whose names hold a
+// direction word, but only as the whole content of a <kbd> element, and only
+// on that one page. Any other use of those words there still fails.
 
 let pageTextFiles = 0;
 {
@@ -1127,6 +1180,8 @@ let pageTextFiles = 0;
   const PAGE_TEXT_ALLOWED = [
     { file: "conventions.html", text: "This site never says up, or the word that is its opposite" }
   ];
+  const KEY_NAME_FILES = ["neural-dsp-keyboard-guide.html"];
+  const KEY_NAME_KBD = /<kbd>(?:(?:Up|Down|Left|Right) Arrow|Page (?:Up|Down)|(?:Left|Right) Bracket)<\/kbd>/g;
 
   const decodeEntities = (s) => s
     .replace(/&#x([0-9a-f]+);/gi, (m, hex) => String.fromCodePoint(parseInt(hex, 16)))
@@ -1165,7 +1220,9 @@ let pageTextFiles = 0;
   if (files.length === 0) error("page text", "no HTML pages found");
   for (const file of files) {
     pageTextFiles += 1;
-    let text = readableText(fs.readFileSync(path.join(ROOT, file), "utf8"));
+    let html = fs.readFileSync(path.join(ROOT, file), "utf8");
+    if (KEY_NAME_FILES.includes(file)) html = html.replace(KEY_NAME_KBD, " key ");
+    let text = readableText(html);
     for (const allowed of PAGE_TEXT_ALLOWED.filter((a) => a.file === file)) {
       if (!text.includes(allowed.text)) {
         error(`page text ${file}`, `the sanctioned direction-word sentence is missing or changed: "${allowed.text}"`);

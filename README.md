@@ -18,6 +18,7 @@ Chord charts, fretboard diagrams, and video lessons all assume you can see them,
 - **Metronome** — a click at 30 to 500 beats per minute with an accented first beat, eighth-note, triplet, and sixteenth-note subdivisions, tap tempo, four sounds, a volume slider, and a speed trainer that raises the tempo every few bars to a target. Synthesized in the browser, with no live region at all, because the click is the feedback. Keeps playing on a locked phone, with lock-screen controls. Settings are remembered.
 - **Conventions page** — the strict grammar every description follows (higher/lower always mean pitch, muted strings are always explicit, sharps and flats are spelled out).
 - **Settings** — choose the description format (per string, by finger, or prose) and how strings are named (number, note name, or both). Saved in the browser.
+- **Neural DSP Plugins Accessibility** — a page for the maintainer's NVDA add-on that makes the Archetype Petrucci X and Archetype Nolly X plug-ins usable with a screen reader, with a link to its latest release and the add-on's full keyboard guide on a page of its own. The add-on itself lives in its own repository, [oasis1701/neural-dsp-plugins-accessibility](https://github.com/oasis1701/neural-dsp-plugins-accessibility).
 
 Planned: scales (major positions, pentatonic boxes, modes), audio playback, practice quizzes.
 

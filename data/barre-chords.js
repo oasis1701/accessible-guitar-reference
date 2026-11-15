@@ -65,7 +65,7 @@ globalThis.AGR = globalThis.AGR || {};
       kind: "movable",
       inversion: "root",
       variantLabel: "A shape",
-      barres: [{ finger: "index", offset: 0, fromString: 5, toString: 1 }],
+      barres: [{ finger: "index", offset: 0, fromString: 6, toString: 1 }],
       strings: [
         { string: 6, action: "mute" },
         { string: 5, action: "fret", offset: 0, finger: "index", role: "root", anchor: true },
@@ -79,7 +79,7 @@ globalThis.AGR = globalThis.AGR || {};
         { root: "B", anchorFret: 2 },
         { root: "C", anchorFret: 3 }
       ],
-      tips: "The open A major grip with a barre. The ring and pinky fingers sit exactly where they sit in the minor A shape, so switching between major and minor moves only the middle finger, by one fret. Flattening the ring finger across the 4th, 3rd, and 2nd strings also works."
+      tips: "The open A major grip with a barre. The barre covers the 6th string too, so your index finger stays where it is when you change to an E shape at the same fret. If the 6th string sounds by accident, it plays the fifth of the chord, lower than the root, so nothing clashes. Some players barre only five strings instead, from the 5th string, and let the tip of the index finger touch the 6th string lightly to keep it silent. The ring and pinky fingers sit exactly where they sit in the minor A shape, so switching between major and minor moves only the middle finger, by one fret. Flattening the ring finger across the 4th, 3rd, and 2nd strings also works."
     },
     {
       id: "barre-a-minor",
@@ -89,7 +89,7 @@ globalThis.AGR = globalThis.AGR || {};
       kind: "movable",
       inversion: "root",
       variantLabel: "A shape",
-      barres: [{ finger: "index", offset: 0, fromString: 5, toString: 1 }],
+      barres: [{ finger: "index", offset: 0, fromString: 6, toString: 1 }],
       strings: [
         { string: 6, action: "mute" },
         { string: 5, action: "fret", offset: 0, finger: "index", role: "root", anchor: true },
@@ -103,7 +103,7 @@ globalThis.AGR = globalThis.AGR || {};
         { root: "B", anchorFret: 2 },
         { root: "D", anchorFret: 5 }
       ],
-      tips: "The open A minor grip with a barre."
+      tips: "The open A minor grip with a barre. The barre covers the 6th string too, so your index finger stays where it is when you change to an E shape at the same fret. If the 6th string sounds by accident, it plays the fifth of the chord, lower than the root, so nothing clashes. Some players barre only five strings instead, from the 5th string, and let the tip of the index finger touch the 6th string lightly to keep it silent."
     }
   ];
 })();

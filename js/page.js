@@ -54,24 +54,36 @@
     toc.appendChild(li);
   }
 
+  // One panel per chord, shape, voicing, or fretboard string, for the
+  // stylesheet only. A div with no role and no name is invisible to screen
+  // readers, so the reading order and what is announced stay exactly as
+  // they were without it.
+  function entryBox(container) {
+    var box = el("div", null, { "class": "entry" });
+    container.appendChild(box);
+    return box;
+  }
+
   function appendChord(container, toc, chord) {
-    container.appendChild(el("h3", chord.name, { id: chord.id }));
-    appendNodes(container, descriptionNodes(AGR.render.describeChord(chord, settings)));
+    var box = entryBox(container);
+    box.appendChild(el("h3", chord.name, { id: chord.id }));
+    appendNodes(box, descriptionNodes(AGR.render.describeChord(chord, settings)));
     addTocEntry(toc, chord.id, chord.name);
   }
 
   function appendShape(container, toc, shape) {
-    container.appendChild(el("h3", shape.name, { id: shape.id }));
-    appendNodes(container, descriptionNodes(AGR.render.describeShapeRelative(shape, settings)));
-    container.appendChild(el("h4", shape.examples.length === 1 ? "Example" : "Examples"));
+    var box = entryBox(container);
+    box.appendChild(el("h3", shape.name, { id: shape.id }));
+    appendNodes(box, descriptionNodes(AGR.render.describeShapeRelative(shape, settings)));
+    box.appendChild(el("h4", shape.examples.length === 1 ? "Example" : "Examples"));
     var anchor = shape.strings.filter(function (entry) { return entry.anchor; })[0];
     shape.examples.forEach(function (example) {
       var chord = AGR.render.instantiateShape(shape, example);
-      container.appendChild(el("p",
+      box.appendChild(el("p",
         chord.name + ". Root at the " + AGR.render.ordinal(example.anchorFret) +
         " fret of the " + AGR.render.stringLabel(anchor.string, settings.stringNaming) + ".",
         { "class": "example-lead" }));
-      appendNodes(container, descriptionNodes(AGR.render.describeChord(chord, settings)));
+      appendNodes(box, descriptionNodes(AGR.render.describeChord(chord, settings)));
     });
     addTocEntry(toc, shape.id, shape.name);
   }
@@ -135,12 +147,13 @@
     for (var s = 6; s >= 1; s--) {
       var label = AGR.render.stringLabel(s, settings.stringNaming);
       var id = "string-" + s;
-      notesBox.appendChild(el("h3", label, { id: id }));
+      var box = entryBox(notesBox);
+      box.appendChild(el("h3", label, { id: id }));
       var ul = document.createElement("ul");
       AGR.render.fretboardStringLines(s, settings.stringNaming).forEach(function (line) {
         ul.appendChild(el("li", line));
       });
-      notesBox.appendChild(ul);
+      box.appendChild(ul);
       addTocEntry(tocUl, id, label);
     }
     AGR.octaveShapes.forEach(function (shape) {
@@ -156,12 +169,13 @@
     var chord = AGR.render.instantiateShape(shape, example);
     var anchor = shape.strings.filter(function (e) { return e.anchor; })[0];
     var heading = chord.name + (shape.variantLabel ? ", " + shape.variantLabel : "");
-    container.appendChild(el("h3", heading, { id: chord.id }));
-    container.appendChild(el("p",
+    var box = entryBox(container);
+    box.appendChild(el("h3", heading, { id: chord.id }));
+    box.appendChild(el("p",
       "Root at the " + AGR.render.ordinal(example.anchorFret) + " fret of the " +
       AGR.render.stringLabel(anchor.string, settings.stringNaming) + ".",
       { "class": "example-lead" }));
-    appendNodes(container, descriptionNodes(AGR.render.describeChord(chord, settings)));
+    appendNodes(box, descriptionNodes(AGR.render.describeChord(chord, settings)));
     addTocEntry(tocUl, chord.id, heading);
   }
 

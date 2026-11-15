@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neural DSP Plugins Accessibility keyboard guide — Accessible Guitar Reference</title>
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+<header>
+  <p class="site-title">Accessible Guitar Reference</p>
+  <nav aria-labelledby="site-menu-heading">
+    <h2 id="site-menu-heading">Site menu</h2>
+    <ul>
+      <li><a href="index.html">Home</a></li>
+      <li><a href="conventions.html">How to read this site</a></li>
+      <li><a href="fretboard.html">Fretboard</a></li>
+      <li><a href="open-chords.html">Open chords</a></li>
+      <li><a href="power-chords.html">Power chords</a></li>
+      <li><a href="barre-chords.html">Barre chords</a></li>
+      <li><a href="triads.html">Triads</a></li>
+      <li><a href="chord-finder.html">Chord finder</a></li>
+      <li><a href="tuner.html">Tuner</a></li>
+      <li><a href="metronome.html">Metronome</a></li>
+      <li><a href="settings.html">Settings</a></li>
+      <li><a href="neural-dsp-plugins-accessibility.html">Neural DSP Plugins Accessibility</a></li>
+    </ul>
+  </nav>
+</header>
+<main id="main">
+  <h1>Neural DSP Plugins Accessibility keyboard guide</h1>
+  <p>This is the full guide to Neural DSP Plugins Accessibility, the NVDA add-on for the Archetype Petrucci X and Archetype Nolly X plug-ins. The download link is on the <a href="neural-dsp-plugins-accessibility.html">Neural DSP Plugins Accessibility</a> page. After you install the add-on, this guide also opens from its Help action in NVDA's Add-on Store.</p>
+  <p>The add-on names the plug-ins' controls, says knob values and switch positions, and adds keys for things a mouse user does at a glance.</p>
+  <p>For the best results, install the VST3 versions of the plug-ins and use them inside REAPER. That is where the add-on is tested. The standalone applications are still being worked on and tested.</p>
+  <p>This add-on is an independent project. It is not made by, affiliated with, or endorsed by Neural DSP. Neural DSP and the other product names in this guide are trademarks of their owners.</p>
+
+  <h2>Stepping in and out</h2>
+  <p>In REAPER, open the plug-in's FX window and press <kbd>NVDA+Shift+A</kbd> to move into the plug-in. Press it again to go back to the REAPER control you came from. With NVDA's laptop keyboard layout the key is <kbd>NVDA+Shift+G</kbd>. This is the only key that works outside the plug-in.</p>
+  <p>Tab goes round in a circle inside the plug-in and never leaves it. There are two ways out. <kbd>NVDA+Shift+A</kbd> takes you back to the REAPER control you came from, with the FX window still open. <kbd>Escape</kbd> closes the FX window and takes you back to REAPER's main window, and the plug-in stays on the track. The arrow keys do nothing on buttons and switches, so they cannot drop you out by accident.</p>
+
+  <h2>The signal chain</h2>
+  <p>Your guitar goes through the plug-in's sections one after another, and the number keys follow the same order. Any section can be switched off independently, and the sound then skips it.</p>
+  <p>The Petrucci X has seven sections.</p>
+  <ul>
+    <li>1, Wah Comp. A wah pedal and a compressor.</li>
+    <li>2, Pre FX. Overdrive, phaser, chorus, and flanger pedals.</li>
+    <li>3, Amp. Four amplifiers, Piezo, Clean, Rhythm, and Lead.</li>
+    <li>4, Cab. Two microphones, each with its own room. Includes a custom IR loader for both. The Piezo amplifier has no Cab section.</li>
+    <li>5, EQ. A four-band equalizer with high-pass and low-pass filters. The Piezo amplifier has no EQ section.</li>
+    <li>6, Volume. A volume pedal.</li>
+    <li>7, Post FX. Chorus, delay, and reverb rack-mounted units.</li>
+  </ul>
+  <p>The Nolly X has five sections.</p>
+  <ul>
+    <li>1, Pre Effects. Compressor, Overdrive 1, Delay 1, and Overdrive 2 pedals.</li>
+    <li>2, Amp. Four amplifiers, Clean, Crunch, Rhythm, and Lead.</li>
+    <li>3, Cab. Two microphones, each with a room send. Includes a custom IR loader for both.</li>
+    <li>4, EQ. A nine-band graphic equalizer with two voicings, Original and Nolly's mod, and high-pass and low-pass filters.</li>
+    <li>5, Post Effects. Delay 2 and reverb pedals.</li>
+  </ul>
+  <p>On the Nolly X the amplifier and the cabinet are linked, so choosing an amplifier brings its own cabinet. Unlink them with <kbd>Control+A</kbd> to pair any amplifier with any cabinet.</p>
+
+  <h2>The top and bottom bars</h2>
+  <p>Two bars stay the same whichever section you are in.</p>
+  <p>The top bar holds these controls.</p>
+  <ul>
+    <li>Input, with its level meter</li>
+    <li>The noise gate switch and its threshold</li>
+    <li>Transpose</li>
+    <li>Input mode, mono or stereo, in the VST3 plug-in only</li>
+    <li>The presets, with the preset display, previous and next preset, SAVE AS, and SAVE and DELETE for your own presets</li>
+    <li>More preset actions, with IMPORT, RESET, and LOCATE FILE</li>
+    <li>The doubler switch and its spread</li>
+    <li>Output, with its level meter</li>
+  </ul>
+  <p>The bottom bar holds these controls.</p>
+  <ul>
+    <li>The amplifier selectors. On the Nolly X there are cabinet selectors and an amp and cab link as well.</li>
+    <li>Tuner, which opens the tuner</li>
+    <li>MIDI, which opens the MIDI mappings window</li>
+  </ul>
+
+  <h2>Moving around</h2>
+  <p>Every key from here to the end of this guide works while you are inside the plug-in.</p>
+  <ul>
+    <li><kbd>Tab</kbd> and <kbd>Shift+Tab</kbd> move to the next and previous control.</li>
+    <li><kbd>1</kbd> to <kbd>7</kbd> go to a section, and focus lands on its first control. The Nolly X uses 1 to 5.</li>
+    <li><kbd>Left Bracket</kbd> and <kbd>Right Bracket</kbd> move to the previous and next module of the section, such as a pedal, an effects unit, a microphone, or the top bar.</li>
+    <li><kbd>R</kbd> moves to the Transpose knob.</li>
+    <li><kbd>P</kbd> moves to the preset display and opens the list of presets.</li>
+  </ul>
+
+  <h2>Knobs and switches</h2>
+  <ul>
+    <li><kbd>Up Arrow</kbd> and <kbd>Right Arrow</kbd> increase the focused knob's value, and <kbd>Down Arrow</kbd> and <kbd>Left Arrow</kbd> decrease it.</li>
+    <li><kbd>Page Up</kbd> and <kbd>Page Down</kbd> change it in bigger steps, and <kbd>Control</kbd> with an arrow key changes it in the smallest steps.</li>
+    <li><kbd>Home</kbd> and <kbd>End</kbd> set it to its minimum and maximum.</li>
+    <li><kbd>Enter</kbd> presses a button or flips a switch. A switch then says its new position.</li>
+    <li><kbd>Enter</kbd> on a knob that has a value box takes you into the box. Type a value and press Enter to set it.</li>
+    <li><kbd>M</kbd> or the <kbd>Applications</kbd> key opens the focused control's context menu. Reset parameter puts the control back to its default value. Enable MIDI Learn assigns a MIDI control to it. Choose it, then move a knob or press a switch on your MIDI controller, and NVDA says the words MIDI learned. Show MIDI Map opens the MIDI mappings window.</li>
+  </ul>
+
+  <h2>Sections</h2>
+  <ul>
+    <li><kbd>Shift</kbd> with a section's number says whether that section is on or off.</li>
+    <li><kbd>Control</kbd> with a section's number switches that section off or on. You stay where you are.</li>
+  </ul>
+
+  <h2>Amplifiers and presets</h2>
+  <ul>
+    <li><kbd>A</kbd> selects the next amplifier, going round.</li>
+    <li><kbd>C</kbd> selects the next cabinet, going round, on the Nolly X while the amp and cab are unlinked.</li>
+    <li><kbd>Control+A</kbd> links or unlinks the amplifier and the cabinet, on the Nolly X.</li>
+    <li><kbd>Comma</kbd> and <kbd>Period</kbd> load the previous and next preset and say its name.</li>
+    <li>In the list of presets, <kbd>Up Arrow</kbd> and <kbd>Down Arrow</kbd> move, <kbd>Right Arrow</kbd> or <kbd>Enter</kbd> opens a folder, <kbd>Left Arrow</kbd> closes it, and <kbd>Enter</kbd> on a preset loads it.</li>
+  </ul>
+
+  <h2>Gate and doubler</h2>
+  <ul>
+    <li><kbd>G</kbd> switches the noise gate on or off.</li>
+    <li><kbd>D</kbd> switches the doubler on or off.</li>
+  </ul>
+  <p>Both say the new state, and focus stays where it was.</p>
+
+  <h2>Tools</h2>
+  <ul>
+    <li><kbd>T</kbd> opens or closes the tuner. Play a string and NVDA says the note and how far off it is. Within 2 cents of the note, it says in tune. The plug-in mutes your guitar while the tuner is open. To change that, Tab to the control named Mute while tuning.</li>
+    <li><kbd>L</kbd> starts a level check. Play, then press L again to hear the peak and average level of the input and output, in decibels. A common target is an input peak of about minus 12.</li>
+    <li><kbd>Control+M</kbd> opens or closes the MIDI mappings window.</li>
+    <li><kbd>NVDA+Shift+E</kbd> on a microphone selector in the Cab section loads your own impulse response file. A Windows file dialog opens, where you choose the file.</li>
+  </ul>
+
+  <h2>Good to know</h2>
+  <ul>
+    <li>In a text box, such as a knob's value box or the tuner's reference pitch, the single letter and number keys type. Tab out of the box first, then press the key.</li>
+    <li>Comma, Period, and the bracket keys work with any keyboard layout. If your layout types something else on the bracket keys, they are still the two keys just after P on the same row.</li>
+    <li>Every command is listed under Neural DSP Plugins Accessibility in NVDA's Input Gestures dialog, where you can change its key.</li>
+    <li>RESET, under More preset actions, puts every control in the plug-in back to its default and cannot be undone. The first Enter only says what it would do. Press Enter again within ten seconds to carry it out. Any other key cancels it.</li>
+    <li>DELETE, shown for your own presets, asks with the plug-in's own question before it deletes. Cancel is chosen first, so Enter deletes only after you Tab to the button named Yes, delete.</li>
+  </ul>
+</main>
+<footer>
+  <p>Accessible Guitar Reference is a set of guitar guides and tools for blind and visually impaired players.</p>
+</footer>
+</body>
+</html>

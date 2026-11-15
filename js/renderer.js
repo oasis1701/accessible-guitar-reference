@@ -113,6 +113,16 @@ globalThis.AGR = globalThis.AGR || {};
     return item.barres.some(function (b) { return inBarre(b, entry); });
   }
 
+  // A string that must stay silent can still lie under a barre, as the 6th
+  // string does in the A shapes (maintainer decision, 2026-11-15). Its
+  // per-string line then says both, so it agrees with the barre sentence.
+  function isSilentUnderBarre(item, entry) {
+    if (entry.action !== "mute" || !item.barres) return false;
+    return item.barres.some(function (b) {
+      return entry.string <= b.fromString && entry.string >= b.toString;
+    });
+  }
+
   function barreSpan(b, naming) {
     var count = b.fromString - b.toString + 1;
     var countText = count === 6 ? "all six strings" : COUNT_WORDS[count] + " strings";
@@ -186,7 +196,9 @@ globalThis.AGR = globalThis.AGR || {};
   function perStringLines(item, naming, fretText, roleText) {
     return item.strings.map(function (entry) {
       var label = stringLabel(entry.string, naming);
-      if (entry.action === "mute") return label + ": do not play.";
+      if (entry.action === "mute") {
+        return label + (isSilentUnderBarre(item, entry) ? ": covered by the barre, do not play." : ": do not play.");
+      }
       if (entry.action === "open") return label + ": open.";
       var how = isCoveredByBarre(item, entry) ? "covered by the barre" : fingerPhrase(entry.finger);
       return label + ": " + fretText(entry) + ", " + how + "." +
