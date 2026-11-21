@@ -229,6 +229,15 @@ li {
   text-decoration: underline;
 }
 
+/* A card whose link shows its own full address, under a plain text name (the
+   add-on page's download, maintainer decision 2026-11-20). The address has no
+   spaces, and "anywhere" lets it break so the card can still shrink to a
+   narrow screen; break-word alone would not shrink the grid column. */
+.link-cards .link-card-url {
+  margin: 0 0 0.35rem 0;
+  overflow-wrap: anywhere;
+}
+
 /* Only the link name is the click target. Stretching the link over the
    whole card would block selecting the description text and make mouse
    and touch exploration read the link name over the description.
@@ -241,7 +250,8 @@ li {
     outline-offset: 2px;
   }
 
-  .link-card-name a:focus-visible {
+  .link-card-name a:focus-visible,
+  .link-card-url a:focus-visible {
     outline: none;
   }
 }
