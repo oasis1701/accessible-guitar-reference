@@ -30,7 +30,7 @@
 </header>
 <main id="main">
   <h1>Neural DSP Plugins Accessibility keyboard guide</h1>
-  <p>This is the full guide to Neural DSP Plugins Accessibility, the NVDA add-on for the Archetype Petrucci X, Archetype Nolly X, Fortin Nameless Suite X, and Soldano SLO-100 X plug-ins. The download link is on the <a href="neuraldsp.html">Neural DSP Plugins Accessibility</a> page. After you install the add-on, this guide also opens from its Help action in NVDA's Add-on Store.</p>
+  <p>This is the full guide to Neural DSP Plugins Accessibility, the NVDA add-on for the Archetype Petrucci X, Archetype Nolly X, Fortin Nameless Suite X, Soldano SLO-100 X, and Archetype Cory Wong X plug-ins. The download link is on the <a href="neuraldsp.html">Neural DSP Plugins Accessibility</a> page. After you install the add-on, this guide also opens from its Help action in NVDA's Add-on Store.</p>
   <p>The add-on names the plug-ins' controls, says knob values and switch positions, and adds keys for things a mouse user does at a glance.</p>
   <p>For the best results, install the VST3 versions of the plug-ins and use them inside REAPER. That is where the add-on is tested. The standalone applications are still being worked on and tested.</p>
   <p>This add-on is an independent project. It is not made by, affiliated with, or endorsed by Neural DSP. Neural DSP and the other product names in this guide are trademarks of their owners.</p>
@@ -76,6 +76,16 @@
     <li>4, EQ. A nine-band graphic equalizer with high-pass and low-pass filters.</li>
     <li>5, Post Effects. Delay and reverb pedals.</li>
   </ul>
+  <p>The Archetype Cory Wong X has six sections.</p>
+  <ul>
+    <li>1, Wah. A wah pedal with an auto-wah.</li>
+    <li>2, Pre FX. The Postal Service envelope filter, a compressor, and the Tuber and Big Rig overdrive pedals.</li>
+    <li>3, Amp. Three amplifiers, Funk, Clean, and Snob.</li>
+    <li>4, Cab. Two microphones, each with a room send, and the amplifier's controls again in small.</li>
+    <li>5, EQ. A nine-band graphic equalizer for each amplifier, with high-pass and low-pass filters.</li>
+    <li>6, Post FX. Chorus, delay, and the Wash reverb pedals.</li>
+  </ul>
+  <p>On the Cory Wong X, as on the Nolly X, the amplifier and the cabinet are linked. Unlink them with <kbd>Control+A</kbd> to pair any amplifier with any cabinet.</p>
 
   <h2>The top and bottom bars</h2>
   <p>Two bars stay the same whichever section you are in.</p>
@@ -92,7 +102,7 @@
   </ul>
   <p>The bottom bar holds these controls.</p>
   <ul>
-    <li>The amplifier selectors. On the Nolly X there are cabinet selectors and an amp and cab link as well. The Fortin and the Soldano each have one amplifier and no selectors.</li>
+    <li>The amplifier selectors. On the Nolly X and the Cory Wong X there are cabinet selectors and an amp and cab link as well. The Fortin and the Soldano each have one amplifier and no selectors.</li>
     <li>Tuner, which opens the tuner</li>
     <li>MIDI, which opens the MIDI mappings window</li>
   </ul>
@@ -101,7 +111,7 @@
   <p>Every key from here to the end of this guide works while you are inside the plug-in.</p>
   <ul>
     <li><kbd>Tab</kbd> and <kbd>Shift+Tab</kbd> move to the next and previous control.</li>
-    <li><kbd>1</kbd> to <kbd>7</kbd> go to a section, and focus lands on its first control. The Nolly X, the Fortin, and the Soldano use 1 to 5.</li>
+    <li><kbd>1</kbd> to <kbd>7</kbd> go to a section, and focus lands on its first control. The Nolly X, the Fortin, and the Soldano use 1 to 5, and the Cory Wong X 1 to 6.</li>
     <li><kbd>Left Bracket</kbd> and <kbd>Right Bracket</kbd> move to the previous and next module of the section, such as a pedal, an effects unit, a microphone, or the top bar.</li>
     <li><kbd>R</kbd> moves to the Transpose knob.</li>
     <li><kbd>P</kbd> moves to the preset display and opens the list of presets.</li>
@@ -128,8 +138,8 @@
   <h2>Amplifiers and presets</h2>
   <ul>
     <li><kbd>A</kbd> selects the next amplifier, going round. The Fortin and the Soldano have one amplifier, and A says so.</li>
-    <li><kbd>C</kbd> selects the next cabinet, going round, on the Nolly X while the amp and cab are unlinked.</li>
-    <li><kbd>Control+A</kbd> links or unlinks the amplifier and the cabinet, on the Nolly X.</li>
+    <li><kbd>C</kbd> selects the next cabinet, going round, on the Nolly X and the Cory Wong X while the amp and cab are unlinked.</li>
+    <li><kbd>Control+A</kbd> links or unlinks the amplifier and the cabinet, on the Nolly X and the Cory Wong X.</li>
     <li><kbd>Comma</kbd> and <kbd>Period</kbd> load the previous and next preset and say its name.</li>
     <li>In the list of presets, <kbd>Up Arrow</kbd> and <kbd>Down Arrow</kbd> move, <kbd>Right Arrow</kbd> or <kbd>Enter</kbd> opens a folder, <kbd>Left Arrow</kbd> closes it, and <kbd>Enter</kbd> on a preset loads it.</li>
   </ul>
@@ -161,7 +171,9 @@
     <li>On the Soldano, the small switches in the Cab section do not say their position. The switches in the Amp section do.</li>
     <li>On the Soldano, the controls the chosen channel turns off say the word inactive in the Amp section. On OVERDRIVE these are Bright, Mode, and the PREAMP and MASTER knobs marked NORMAL. On NORMAL they are the two knobs marked OVERDRIVE. The small amplifier in the Cab section does not say it.</li>
     <li>The Soldano's amplifier has three looks, Black, Purple, and Snake, and clicking the Soldano logo goes to the next. The add-on is made for the Black look, and Tab skips the logo.</li>
-    <li>Before it says a switch's position, the add-on checks that the screen shows the plug-in as expected. If it does not, for example with HDR on or another window over the plug-in, switches say only their names. This covers the Nolly X, the Fortin, and the Soldano, and not yet the Petrucci X.</li>
+    <li>On the Cory Wong X, the Clean amplifier's power switch, the small amplifier's power switch in the Cab section, and the tuner's mute button do not say their position. The Funk's and the Snob's power switches in the Amp section do.</li>
+    <li>On the Cory Wong X, the delay's TIME R knob says the word inactive while the delay is on SINGLE.</li>
+    <li>Before it says a switch's position, the add-on checks that the screen shows the plug-in as expected. If it does not, for example with HDR on or another window over the plug-in, switches say only their names. This covers the Nolly X, the Fortin, the Soldano, and the Cory Wong X, and not yet the Petrucci X.</li>
     <li>Switch positions are checked at the plug-ins' Medium size and larger, chosen in the plug-in's size menu. At Small, a few switches may say the wrong position.</li>
   </ul>
 </main>
